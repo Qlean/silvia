@@ -54,7 +54,7 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	server_config, err := LoadConfig("config.yml")
+	server_config, err := LoadConfig("config.yaml")
 	if err != nil {
 		log.Println("Config error: ", err)
 		return
