@@ -2,7 +2,8 @@ package main
 
 import(
 	"log"
-	// "time"
+	"time"
+	"strconv"
 	"net/http"
 	"io/ioutil"
 	"github.com/gorilla/mux"
@@ -11,46 +12,39 @@ import(
 )
 
 type NginxLog struct {
-	IPAddress   string `json:"ip_addr"`
-	// TimeLocal   time   `json:"time_local"`
-	RequestBody string `json:"request_body"`
-	Referer     string `json:"http_referer"`
-	UserAgent   string `json:"http_user_agent"`
+	IPAddress   string    `json:"ip_addr"`
+	TimeLocal   time.Time `json:"time_local"`
+	RequestBody string    `json:"request_body"`
+	Referer     string    `json:"http_referer"`
+	UserAgent   string    `json:"http_user_agent"`
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	httpStatus := HttpStatus{}
-
-	defer func() { JSON(w, httpStatus) }()
-
 	log.Println("Status command accepted")
-
-	httpStatus.OK("Server works")
 }
 
 func pushHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	httpStatus := HttpStatus{}
-
-	defer func() { JSON(w, httpStatus) }()
-
 	log.Println("Push command accepted")
 
+	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		httpStatus.ERROR("Failed to read push command body")
+		http.Error(w, "Failed to read push command body", http.StatusBadRequest)
+		return
+	}
+
+	normString, err := strconv.Unquote(`"` + string(body) + `"`)
+	if err != nil {
+		http.Error(w, "Failed to normalize nginx log string: " + err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	nginxLog := &NginxLog{}
-	err = ffjson.Unmarshal(body, nginxLog)
+	err = ffjson.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
-		httpStatus.ERROR("Failed to unmarshal JSON to NginxLog structure")
+		http.Error(w, "Failed to unmarshal JSON to NginxLog structure: " + err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	httpStatus.OK(string(body))
 }
 
 func main() {
