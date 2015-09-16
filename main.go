@@ -5,10 +5,14 @@ import(
 	"strconv"
 	"net/http"
 	"io/ioutil"
-	"github.com/gorilla/mux"
+	"encoding/json"
 
-	"github.com/pquerna/ffjson/ffjson"
+	"github.com/gorilla/mux"
 )
+
+type Event struct {
+	Aid string `db:"app_id"`
+}
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Status command accepted")
@@ -31,13 +35,21 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	nginxLog := &NginxLog{}
-	err = ffjson.Unmarshal([]byte(normString), nginxLog)
+	err = json.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
 		http.Error(w, "Failed to unmarshal JSON to NginxLog structure: " + err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	log.Println(nginxLog)
+
+	event := &Event{"test"}
+
+	err = dbmap.Insert(event)
+    if err != nil {
+		http.Error(w, "Failed to write data to database: " + err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func main() {
@@ -46,6 +58,9 @@ func main() {
 		log.Println("Config error: ", err)
 		return
 	}
+
+	dbmap = initDb()
+    defer dbmap.Db.Close()
 
 	r := mux.NewRouter()
 

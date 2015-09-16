@@ -6,7 +6,7 @@ import(
 )
 
 type ServerConfig struct {
-	Port string
+	Port       string
 }
 
 func LoadConfig(filename string) (server_config *ServerConfig, err error) {
