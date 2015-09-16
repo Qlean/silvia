@@ -13,7 +13,7 @@ var dbmap *gorp.DbMap
 func initDb() *gorp.DbMap {
     // connect to db using standard Go database/sql API
     // use whatever database/sql driver you wish
-	db, err := sql.Open("postgres","dbname=snowplow schema=atomic host=stats.qlean.ru.node.consul user=sp_bot password=NEsnow357plow sslmode=disable")
+	db, err := sql.Open("postgres","dbname=snowplow host=stats.qlean.ru.node.consul user=sp_bot password=NEsnow357plow sslmode=disable")
     checkErr(err, "sql.Open failed")
 
     // construct a gorp DbMap
@@ -24,6 +24,8 @@ func initDb() *gorp.DbMap {
 
     // create the table. in a production system you'd generally
     // use a migration tool, or create the tables via scripts
+
+    dbmap.AddTableWithNameAndSchema(Event{}, "atomic", "events").SetKeys(true, "Id")
 
     return dbmap
 }

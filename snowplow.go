@@ -33,36 +33,37 @@ type ScreenResolution struct {
 }
 
 type SnowplowData struct {
-	E               string            `json:"e" db:"event"`
-	Url             string            `json:"url" db:"page_url"`
-	Page            string            `json:"page" db:"page_title"`
-	Referer         string            `json:"refr" db:"page_referrer"`
-	Tv              string            `json:"tv" db:"v_tracker"`
-	AID             string            `json:"aid" db:"app_id"`
-	P               string            `json:"p" db:"platform"`
-	Timezone        string            `json:"tz" db:"os_timezone"`
-	Lang            string            `json:"lang" db:"br_lang"`
-	Cs              string            `json:"cs" db:"doc_charset"`
-	PDF             string            `json:"f_pdf"`
-	QT              string            `json:"f_qt"`
-	RealPlayer      string            `json:"f_realp"`
-	WMA             string            `json:"f_wma"`
-	Dir             string            `json:"f_dir"`
-	Flash           string            `json:"f_fla"`
-	Java            string            `json:"f_java"`
-	Gears           string            `json:"f_gears"`
-	Ag              string            `json:"f_ag"`
-	Res             ScreenResolution  `json:"res"`
-	Cd              string            `json:"cd" db:"br_colordepth"`
-	Cookie          string            `json:"cookie"`
-	EID             string            `json:"eid" db:"event_id"`
-	DeviceTimestamp SnowplowTimestamp `json:"dtm"`
-	Contexts        string            `json:"co" db:"contexts"`
-	Vp              ScreenResolution  `json:"vp"`
-	Ds              ScreenResolution  `json:"ds"`
-	Vid             string            `json:"vid" db:"visit_num"`
-	DUID            string            `json:"duid" db:"domain_userid"`
-	Fp              string            `json:"fp" db:"user_fingerprint"`
+	Event           string            `json:"e"`
+	PageURL         string            `json:"url"`
+	PageTtile       string            `json:"page"`
+	PageReferrer    string            `json:"refr"`
+	VTracker        string            `json:"tv"`
+	Aid             string            `json:"aid"`
+	Platform        string            `json:"p"`
+	OsTimezone      string            `json:"tz"`
+	BrLang          string            `json:"lang"`
+	DocCharset      string            `json:"cs"`
+	BrPDF           string            `json:"f_pdf"`
+	BrQT            string            `json:"f_qt"`
+	BrRealPlayer    string            `json:"f_realp"`
+	BrWMA           string            `json:"f_wma"`
+	BrDir           string            `json:"f_dir"`
+	BrFlash         string            `json:"f_fla"`
+	BrJava          string            `json:"f_java"`
+	BrGears         string            `json:"f_gears"`
+	BrAg            string            `json:"f_ag"`
+	DvceScreen      ScreenResolution  `json:"res"`
+	BrColorDepth    string            `json:"cd"`
+	BrCookies       string            `json:"cookie"`
+	EventID         string            `json:"eid"`
+	DvceTstamp      SnowplowTimestamp `json:"dtm"`
+	Contexts        string            `json:"co"`
+	BrView          ScreenResolution  `json:"vp"`
+	Doc             ScreenResolution  `json:"ds"`
+	VisitNum        string            `json:"vid"`
+	DomainUserID    string            `json:"duid"`
+	UserFingerprint string            `json:"fp"`
+	UserID          string            `json:"uid"`
 }
 
 

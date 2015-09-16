@@ -10,10 +10,6 @@ import(
 	"github.com/gorilla/mux"
 )
 
-type Event struct {
-	Aid string `db:"app_id"`
-}
-
 func statusHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Status command accepted")
 }
@@ -43,9 +39,7 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(nginxLog)
 
-	event := &Event{"test"}
-
-	err = dbmap.Insert(event)
+	err = dbmap.Insert(nginxLogToEvent(nginxLog))
     if err != nil {
 		http.Error(w, "Failed to write data to database: " + err.Error(), http.StatusBadRequest)
 		return

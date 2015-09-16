@@ -22,5 +22,5 @@ type NginxLog struct {
 	TimeLocal   NginxTime `json:"time_local"`
 	RequestBody Snowplow  `json:"request_body"`
 	Referer     string    `json:"http_referer"`
-	UserAgent   string    `json:"http_user_agent"`
+	Useragent   string    `json:"http_user_agent"`
 }
