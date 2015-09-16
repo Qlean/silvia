@@ -6,8 +6,11 @@ import(
 )
 
 type ServerConfig struct {
-	Port       string
+	Port      string
+	Pgconnect string
 }
+
+var serverConfig *ServerConfig
 
 func LoadConfig(filename string) (server_config *ServerConfig, err error) {
 	buf, err := ioutil.ReadFile(filename)

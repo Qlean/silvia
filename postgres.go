@@ -13,7 +13,8 @@ var dbmap *gorp.DbMap
 func initDb() *gorp.DbMap {
     // connect to db using standard Go database/sql API
     // use whatever database/sql driver you wish
-	db, err := sql.Open("postgres","dbname=snowplow host=stats.qlean.ru.node.consul user=sp_bot password=NEsnow357plow sslmode=disable")
+    pgconnect := serverConfig.Pgconnect
+	db, err := sql.Open("postgres", pgconnect)
     checkErr(err, "sql.Open failed")
 
     // construct a gorp DbMap

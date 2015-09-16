@@ -50,7 +50,8 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 var geo *geoip.GeoIP
 
 func main() {
-	server_config, err := LoadConfig("config.yaml")
+	var err error
+	serverConfig, err = LoadConfig("config.yaml")
 	if err != nil {
 		log.Println("Config error: ", err)
 		return
@@ -75,6 +76,6 @@ func main() {
 		  Path("/push").
 		  HandlerFunc(pushHandler)
 
-	log.Println("Server running on port:", server_config.Port)
-	http.ListenAndServe(":" + server_config.Port, r)
+	log.Println("Server running on port:", serverConfig.Port)
+	http.ListenAndServe(":" + serverConfig.Port, r)
 }
