@@ -7,22 +7,6 @@ import(
 	"strconv"
 	// "encoding/json"
 )
-
-// type SnowplowContentsData struct {
-// 	UtmSource   string `json:"utm_source"`
-// 	UtmMedium   string `json:"utm_medium"`
-// 	UtmCampaign string `json:"utm_campaign"`
-// 	UtmContent  string `json:"utm_content"`
-// 	UtmTerm     string `json:"utm_term"`
-// 	GTestID     string `json:"google_test_id"`
-// 	GTestVar    string `json:"google_test_var"`
-// }
-
-// type SnowplowContents struct {
-// 	Schema string                 `json:"schema"`
-// 	Data   []SnowplowContentsData `json:"data"`
-// }
-
 type SnowplowTimestamp struct {
 	time.Time
 }
@@ -64,6 +48,7 @@ type SnowplowData struct {
 	DomainUserID    string            `json:"duid"`
 	UserFingerprint string            `json:"fp"`
 	UserID          string            `json:"uid"`
+	UnstructEvent   string            `json:"ue_pr"`
 }
 
 

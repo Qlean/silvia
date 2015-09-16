@@ -8,6 +8,7 @@ import(
 	"encoding/json"
 
 	"github.com/gorilla/mux"
+	"github.com/abh/geoip"
 )
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +47,18 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var geo *geoip.GeoIP
+
 func main() {
 	server_config, err := LoadConfig("config.yaml")
 	if err != nil {
 		log.Println("Config error: ", err)
 		return
+	}
+
+	geo, err = geoip.Open("GeoLiteCity.dat")
+	if err != nil {
+		log.Println("Could not open GeoIPv6 database: %s\n", err)
 	}
 
 	dbmap = initDb()

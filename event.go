@@ -1,9 +1,29 @@
 package main
 
 import(
+	"log"
 	"time"
 	"strconv"
+	"encoding/json"
+
+	"github.com/mssola/user_agent"
 )
+
+type SnowplowContextsData struct {
+	Data struct {
+		UtmSource   string `json:"utm_source"`
+		UtmMedium   string `json:"utm_medium"`
+		UtmCampaign string `json:"utm_campaign"`
+		UtmContent  string `json:"utm_content"`
+		UtmTerm     string `json:"utm_term"`
+	}
+}
+
+type SnowplowContexts struct {
+	Schema string                 `json:"schema"`
+	Data   []SnowplowContextsData `json:"data"`
+}
+
 
 type Event struct {
 	Id              int    `db:"-"`
@@ -26,7 +46,7 @@ type Event struct {
 	GeoZipcode      string `db:"geo_zipcode"`
 	GeoLatitude     float32 `db:"geo_latitude"`
 	GeoLongtitude   float32 `db:"geo_longitude"`
-	GeoRegionNmae   string `db:"geo_region_name"`
+	GeoRegionName   string `db:"geo_region_name"`
 	PageURL         string `db:"page_url"`
 	PageTtile       string `db:"page_title"`
 	PageReferrer    string `db:"page_referrer"`
@@ -41,13 +61,13 @@ type Event struct {
 	UtmTerm         string `db:"utm_term"`
 	UtmContent      string `db:"utm_content"`
 	UtmCampaign     string `db:"utm_campaign"`
-	// Contexts        string `db:"contexts"`
+	Contexts        string `db:"contexts"`
 	SeCategory      string `db:"se_category"`
 	SeAction        string `db:"se_action"`
 	SeLabel         string `db:"se_label"`
 	SeProperty      string `db:"se_property"`
 	SeValue         float32 `db:"se_value"`
-	// UnstructEvent   string `db:"unstruct_event"`
+	UnstructEvent   string `db:"unstruct_event"`
 	Useragent       string `db:"useragent"`
 	BrName          string `db:"br_name"`
 	BrFamily        string `db:"br_family"`
@@ -138,6 +158,51 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 
 	// Bind time values
 	event.DvceTstamp = snowplowData.DvceTstamp.Time
+
+	// Bind Geo values
+	geoIPRecord := geo.GetRecord(nginxLog.IPAddress)
+	event.GeoCountry = geoIPRecord.CountryName
+	event.GeoRegion = geoIPRecord.Region
+	event.GeoCity = geoIPRecord.City
+	event.GeoZipcode = geoIPRecord.PostalCode
+	event.GeoLatitude = geoIPRecord.Latitude
+	event.GeoLongtitude = geoIPRecord.Longitude
+	event.GeoRegionName = geoIPRecord.Region
+
+	// Bind useragent values
+
+	ua := user_agent.New(nginxLog.Useragent)
+	event.DvceIsMobile = ua.Mobile()
+
+	event.OsName = ua.OS()
+	event.DvceType = ua.Platform()
+	name, version := ua.Engine()
+	event.BrRndrNgn = name + version
+
+	name, version = ua.Browser()
+	event.BrName = name
+	event.BrVersion = version
+
+	// Bind contexts
+	if len(snowplowData.Contexts) == 0 { snowplowData.Contexts = "{}" }
+	event.Contexts = snowplowData.Contexts
+
+	contexts := &SnowplowContexts{}
+	err := json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
+	if err != nil {
+		log.Println("Cant Unmarshal contexts: ", err)
+	}
+
+	contextsData := contexts.Data[0].Data
+	event.UtmCampaign = contextsData.UtmCampaign
+	event.UtmContent = contextsData.UtmContent
+	event.UtmTerm = contextsData.UtmTerm
+	event.UtmSource = contextsData.UtmSource
+	event.UtmMedium = contextsData.UtmMedium
+
+	// Bind unstructured event
+	if len(snowplowData.UnstructEvent) == 0 { snowplowData.UnstructEvent = "{}" }
+	event.UnstructEvent = snowplowData.UnstructEvent
 
 	return
 }
