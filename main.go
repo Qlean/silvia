@@ -26,6 +26,8 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println(string(body))
+
 	normString, err := strconv.Unquote(`"` + string(body) + `"`)
 	if err != nil {
 		http.Error(w, "Failed to normalize nginx log string: " + err.Error(), http.StatusBadRequest)
