@@ -4,6 +4,7 @@ import(
 	"log"
 	"time"
 	"strconv"
+	"database/sql"
 	"encoding/json"
 
 	"github.com/mssola/user_agent"
@@ -27,54 +28,54 @@ type SnowplowContexts struct {
 
 type Event struct {
 	Id              int    `db:"-"`
-	Aid             string `db:"app_id"`
-	Platform        string `db:"platform"`
+	Aid             sql.NullString `db:"app_id"`
+	Platform        sql.NullString `db:"platform"`
 	CollectorTstamp time.Time `db:"collector_tstamp"`
 	DvceTstamp      time.Time `db:"dvce_tstamp"`
-	Event           string `db:"event"`
-	EventID         string `db:"event_id"`
-	VTracker        string `db:"v_tracker"`
-	UserID          int `db:"user_id"`
-	UserIP          string `db:"user_ipaddress"`
-	UserFingerprint string `db:"user_fingerprint"`
-	DomainUserID    string `db:"domain_userid"`
-	VisitNum        int `db:"visit_num"`
-	SessionID       string `db:"session_id"`
-	GeoCountry      string `db:"geo_country"`
-	GeoRegion       string `db:"geo_region"`
-	GeoCity         string `db:"geo_city"`
-	GeoZipcode      string `db:"geo_zipcode"`
+	Event           sql.NullString `db:"event"`
+	EventID         sql.NullString `db:"event_id"`
+	VTracker        sql.NullString `db:"v_tracker"`
+	UserID          sql.NullInt64 `db:"user_id"`
+	UserIP          sql.NullString `db:"user_ipaddress"`
+	UserFingerprint sql.NullString `db:"user_fingerprint"`
+	DomainUserID    sql.NullString `db:"domain_userid"`
+	VisitNum        sql.NullInt64 `db:"visit_num"`
+	SessionID       sql.NullString `db:"session_id"`
+	GeoCountry      sql.NullString `db:"geo_country"`
+	GeoRegion       sql.NullString `db:"geo_region"`
+	GeoCity         sql.NullString `db:"geo_city"`
+	GeoZipcode      sql.NullString `db:"geo_zipcode"`
 	GeoLatitude     float32 `db:"geo_latitude"`
 	GeoLongtitude   float32 `db:"geo_longitude"`
-	GeoRegionName   string `db:"geo_region_name"`
-	PageURL         string `db:"page_url"`
-	PageTtile       string `db:"page_title"`
-	PageReferrer    string `db:"page_referrer"`
-	PageURLHost     string `db:"page_urlhost"`
-	PageURLPath     string `db:"page_urlpath"`
-	PageURLQuery    string `db:"page_urlquery"`
-	RefrURLHost     string `db:"refr_urlhost"`
-	RefrURLPath     string `db:"refr_urlpath"`
-	RefrURLQuety    string `db:"refr_urlquery"`
-	UtmMedium       string `db:"utm_medium"`
-	UtmSource       string `db:"utm_source"`
-	UtmTerm         string `db:"utm_term"`
-	UtmContent      string `db:"utm_content"`
-	UtmCampaign     string `db:"utm_campaign"`
-	Contexts        string `db:"contexts"`
-	SeCategory      string `db:"se_category"`
-	SeAction        string `db:"se_action"`
-	SeLabel         string `db:"se_label"`
-	SeProperty      string `db:"se_property"`
-	SeValue         float32 `db:"se_value"`
-	UnstructEvent   string `db:"unstruct_event"`
-	Useragent       string `db:"useragent"`
-	BrName          string `db:"br_name"`
-	BrFamily        string `db:"br_family"`
-	BrVersion       string `db:"br_version"`
-	BrType          string `db:"br_type"`
-	BrRndrNgn       string `db:"br_renderengine"`
-	BrLang          string `db:"br_lang"`
+	GeoRegionName   sql.NullString `db:"geo_region_name"`
+	PageURL         sql.NullString `db:"page_url"`
+	PageTtile       sql.NullString `db:"page_title"`
+	PageReferrer    sql.NullString `db:"page_referrer"`
+	PageURLHost     sql.NullString `db:"page_urlhost"`
+	PageURLPath     sql.NullString `db:"page_urlpath"`
+	PageURLQuery    sql.NullString `db:"page_urlquery"`
+	RefrURLHost     sql.NullString `db:"refr_urlhost"`
+	RefrURLPath     sql.NullString `db:"refr_urlpath"`
+	RefrURLQuety    sql.NullString `db:"refr_urlquery"`
+	UtmMedium       sql.NullString `db:"utm_medium"`
+	UtmSource       sql.NullString `db:"utm_source"`
+	UtmTerm         sql.NullString `db:"utm_term"`
+	UtmContent      sql.NullString `db:"utm_content"`
+	UtmCampaign     sql.NullString `db:"utm_campaign"`
+	Contexts        sql.NullString `db:"contexts"`
+	SeCategory      sql.NullString `db:"se_category"`
+	SeAction        sql.NullString `db:"se_action"`
+	SeLabel         sql.NullString `db:"se_label"`
+	SeProperty      sql.NullString `db:"se_property"`
+	SeValue         sql.NullFloat64 `db:"se_value"`
+	UnstructEvent   sql.NullString `db:"unstruct_event"`
+	Useragent       sql.NullString `db:"useragent"`
+	BrName          sql.NullString `db:"br_name"`
+	BrFamily        sql.NullString `db:"br_family"`
+	BrVersion       sql.NullString `db:"br_version"`
+	BrType          sql.NullString `db:"br_type"`
+	BrRndrNgn       sql.NullString `db:"br_renderengine"`
+	BrLang          sql.NullString `db:"br_lang"`
 	BrPDF           bool `db:"br_features_pdf"`
 	BrFlash         bool `db:"br_features_flash"`
 	BrJava          bool `db:"br_features_java"`
@@ -85,20 +86,38 @@ type Event struct {
 	BrGears         bool `db:"br_features_gears"`
 	BrAg            bool `db:"br_features_silverlight"`
 	BrCookies       bool `db:"br_cookies"`
-	BrColorDepth    int  `db:"br_colordepth"`
+	BrColorDepth    sql.NullInt64  `db:"br_colordepth"`
 	BrViewWidth     int `db:"br_viewwidth"`
 	BrViewHeight    int `db:"br_viewheight"`
-	OsName          string `db:"os_name"`
-	OsFamily        string `db:"os_family"`
-	OsManufacturer  string `db:"os_manufacturer"`
-	OsTimezone      string `db:"os_timezone"`
-	DvceType        string `db:"dvce_type"`
+	OsName          sql.NullString `db:"os_name"`
+	OsFamily        sql.NullString `db:"os_family"`
+	OsManufacturer  sql.NullString `db:"os_manufacturer"`
+	OsTimezone      sql.NullString `db:"os_timezone"`
+	DvceType        sql.NullString `db:"dvce_type"`
 	DvceIsMobile    bool `db:"dvce_ismobile"`
 	DvceScreenWidth int `db:"dvce_screenwidth"`
 	DvceScreenHeight int `db:"dvce_screenheight"`
-	DocCharset      string `db:"doc_charset"`
+	DocCharset      sql.NullString `db:"doc_charset"`
 	DocWidth        int `db:"doc_width"`
 	DocHeight       int `db:"doc_height"`
+}
+
+func checkStringForNull(snowplowStr string, event *sql.NullString) {
+	if len(snowplowStr) == 0 {
+		event.Valid = false
+	} else {
+		event.String = snowplowStr
+		event.Valid = true
+	}
+}
+
+func checkIntForNull(snowplowInt string, event *sql.NullInt64) {
+	if snowplowInt == "" {
+		event.Valid = false
+	} else {
+		event.Int64, _ = strconv.ParseInt(snowplowInt, 10, 64)
+		event.Valid = true
+	}
 }
 
 func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
@@ -106,33 +125,33 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	event = &Event{}
 
 	// Binding first level nginx fields
-	event.UserIP = nginxLog.IPAddress
+	checkStringForNull(nginxLog.IPAddress, &event.UserIP)
 	event.CollectorTstamp = time.Now()
-	event.PageReferrer = nginxLog.Referer
-	event.Useragent = nginxLog.Useragent
+	checkStringForNull(nginxLog.Referer, &event.PageReferrer)
+	checkStringForNull(nginxLog.Useragent, &event.Useragent)
 
 	// Binding snowplow data
 	snowplowData := nginxLog.RequestBody.Data[0]
 
 	// Bind string values
-	event.Event = snowplowData.Event
-	event.PageURL = snowplowData.PageURL
-	event.PageTtile = snowplowData.PageTtile
-	event.PageReferrer = snowplowData.PageReferrer
-	event.VTracker = snowplowData.VTracker
-	event.Aid = snowplowData.Aid
-	event.Platform = snowplowData.Platform
-	event.OsTimezone = snowplowData.OsTimezone
-	event.BrLang = snowplowData.BrLang
-	event.DocCharset = snowplowData.DocCharset
-	event.EventID = snowplowData.EventID
-	event.DomainUserID = snowplowData.DomainUserID
-	event.UserFingerprint = snowplowData.UserFingerprint
+	checkStringForNull(snowplowData.Event, &event.Event)
+	checkStringForNull(snowplowData.PageURL, &event.PageURL)
+	checkStringForNull(snowplowData.PageTtile, &event.PageTtile)
+	checkStringForNull(snowplowData.PageReferrer, &event.PageReferrer)
+	checkStringForNull(snowplowData.VTracker, &event.VTracker)
+	checkStringForNull(snowplowData.Aid, &event.Aid)
+	checkStringForNull(snowplowData.Platform, &event.Platform)
+	checkStringForNull(snowplowData.OsTimezone, &event.OsTimezone)
+	checkStringForNull(snowplowData.BrLang, &event.BrLang)
+	checkStringForNull(snowplowData.DocCharset, &event.DocCharset)
+	checkStringForNull(snowplowData.EventID, &event.EventID)
+	checkStringForNull(snowplowData.DomainUserID, &event.DomainUserID)
+	checkStringForNull(snowplowData.UserFingerprint, &event.UserFingerprint)
 
 	// Bind integer values
-	event.BrColorDepth, _ = strconv.Atoi(snowplowData.BrColorDepth)
-	event.VisitNum, _ = strconv.Atoi(snowplowData.VisitNum)
-	event.UserID, _ = strconv.Atoi(snowplowData.UserID)
+	checkIntForNull(snowplowData.BrColorDepth, &event.BrColorDepth)
+	checkIntForNull(snowplowData.VisitNum, &event.VisitNum)
+	checkIntForNull(snowplowData.UserID, &event.UserID)
 
 	// Bind boolean values
 	event.BrPDF, _ = strconv.ParseBool(snowplowData.BrPDF)
@@ -161,31 +180,31 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 
 	// Bind Geo values
 	geoIPRecord := geo.GetRecord(nginxLog.IPAddress)
-	event.GeoCountry = geoIPRecord.CountryName
-	event.GeoRegion = geoIPRecord.Region
-	event.GeoCity = geoIPRecord.City
-	event.GeoZipcode = geoIPRecord.PostalCode
+	checkStringForNull(geoIPRecord.CountryName, &event.GeoCountry)
+	checkStringForNull(geoIPRecord.Region, &event.GeoRegion)
+	checkStringForNull(geoIPRecord.City, &event.GeoCity)
+	checkStringForNull(geoIPRecord.PostalCode, &event.GeoZipcode)
 	event.GeoLatitude = geoIPRecord.Latitude
 	event.GeoLongtitude = geoIPRecord.Longitude
-	event.GeoRegionName = geoIPRecord.Region
+	checkStringForNull(geoIPRecord.Region, &event.GeoRegionName)
 
 	// Bind useragent values
 
 	ua := user_agent.New(nginxLog.Useragent)
 	event.DvceIsMobile = ua.Mobile()
 
-	event.OsName = ua.OS()
-	event.DvceType = ua.Platform()
+	checkStringForNull(ua.OS(), &event.OsName)
+	checkStringForNull(ua.Platform(), &event.DvceType)
+
 	name, version := ua.Engine()
-	event.BrRndrNgn = name + version
+	checkStringForNull(name + version, &event.BrRndrNgn)
 
 	name, version = ua.Browser()
-	event.BrName = name
-	event.BrVersion = version
+	checkStringForNull(name, &event.BrName)
+	checkStringForNull(version, &event.BrVersion)
 
 	// Bind contexts
-	if len(snowplowData.Contexts) == 0 { snowplowData.Contexts = "{}" }
-	event.Contexts = snowplowData.Contexts
+	if len(snowplowData.Contexts) > 0 { checkStringForNull(snowplowData.Contexts, &event.Contexts) }
 
 	contexts := &SnowplowContexts{}
 	err := json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
@@ -194,15 +213,15 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	}
 
 	contextsData := contexts.Data[0].Data
-	event.UtmCampaign = contextsData.UtmCampaign
-	event.UtmContent = contextsData.UtmContent
-	event.UtmTerm = contextsData.UtmTerm
-	event.UtmSource = contextsData.UtmSource
-	event.UtmMedium = contextsData.UtmMedium
+	checkStringForNull(contextsData.UtmCampaign, &event.UtmCampaign)
+	checkStringForNull(contextsData.UtmContent, &event.UtmContent)
+	checkStringForNull(contextsData.UtmTerm, &event.UtmTerm)
+	checkStringForNull(contextsData.UtmSource, &event.UtmSource)
+	checkStringForNull(contextsData.UtmMedium, &event.UtmMedium)
 
 	// Bind unstructured event
-	if len(snowplowData.UnstructEvent) == 0 { snowplowData.UnstructEvent = "{}" }
-	event.UnstructEvent = snowplowData.UnstructEvent
+	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
+	event.SeValue.Valid = false
 
 	return
 }

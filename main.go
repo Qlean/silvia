@@ -16,22 +16,27 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func pushHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Push command accepted")
+	counter++
+
+	log.Println(counter, "Push command accepted")
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read push command body: " + err.Error(), http.StatusBadRequest)
-		log.Println("Failed to read push command body: " + err.Error())
+		log.Println(counter, "Failed to read push command body:", err.Error())
 		return
 	}
 
-	log.Println(string(body))
+	log.Println(counter, "Raw event:", string(body))
+
+	// Remove Line Feed
+	body = body[0:len(body)-1]
 
 	normString, err := strconv.Unquote(`"` + string(body) + `"`)
 	if err != nil {
 		http.Error(w, "Failed to normalize nginx log string: " + err.Error(), http.StatusBadRequest)
-		log.Println("Failed to normalize nginx log string: " + err.Error())
+		log.Println(counter, "Failed to normalize nginx log string:", err.Error())
 		return
 	}
 
@@ -39,21 +44,22 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
 		http.Error(w, "Failed to unmarshal JSON to NginxLog structure: " + err.Error(), http.StatusBadRequest)
-		log.Println("Failed to unmarshal JSON to NginxLog structure: " + err.Error())
+		log.Println(counter, "Failed to unmarshal JSON to NginxLog structure:", err.Error())
 		return
 	}
-
-	log.Println(nginxLog)
 
 	err = dbmap.Insert(nginxLogToEvent(nginxLog))
-    if err != nil {
+	if err != nil {
 		http.Error(w, "Failed to write data to database: " + err.Error(), http.StatusBadRequest)
-		log.Println("Failed to write data to database: " + err.Error())
+		log.Println(counter, "Failed to write data to database:", err.Error())
 		return
 	}
+
+	log.Println(counter, "Succesfuly witten")
 }
 
 var geo *geoip.GeoIP
+var counter int
 
 func main() {
 	var err error
@@ -69,7 +75,7 @@ func main() {
 	}
 
 	dbmap = initDb()
-    defer dbmap.Db.Close()
+	defer dbmap.Db.Close()
 
 	r := mux.NewRouter()
 
