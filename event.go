@@ -25,6 +25,10 @@ type SnowplowContexts struct {
 	Data   []SnowplowContextsData `json:"data"`
 }
 
+type SnowplowContextsJsonField struct {
+	Schema string `json:"schema"`
+	Data   []json.RawMessage `json:"data"`
+}
 
 type Event struct {
 	Id              int    `db:"-"`
@@ -204,20 +208,32 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	checkStringForNull(version, &event.BrVersion)
 
 	// Bind contexts
-	if len(snowplowData.Contexts) > 0 { checkStringForNull(snowplowData.Contexts, &event.Contexts) }
+	if len(snowplowData.Contexts) > 0 {
+		contextsField := &SnowplowContextsJsonField{}
+		err := json.Unmarshal([]byte(snowplowData.Contexts), &contextsField)
+		if err != nil {
+			log.Println("Cant Unmarshal contexts: ", err)
+		} else {
+			checkStringForNull(string(contextsField.Data[0][8:len(contextsField.Data[0])-1]), &event.Contexts)
+		}
 
-	contexts := &SnowplowContexts{}
-	err := json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
-	if err != nil {
-		log.Println("Cant Unmarshal contexts: ", err)
+
+		contexts := &SnowplowContexts{}
+		err = json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
+		if err != nil {
+			log.Println("Cant Unmarshal contexts: ", err)
+		} else {
+			contextsData := contexts.Data[0].Data
+			checkStringForNull(contextsData.UtmCampaign, &event.UtmCampaign)
+			checkStringForNull(contextsData.UtmContent, &event.UtmContent)
+			checkStringForNull(contextsData.UtmTerm, &event.UtmTerm)
+			checkStringForNull(contextsData.UtmSource, &event.UtmSource)
+			checkStringForNull(contextsData.UtmMedium, &event.UtmMedium)
+		}
+	} else {
+		event.Contexts.Valid = false
 	}
 
-	contextsData := contexts.Data[0].Data
-	checkStringForNull(contextsData.UtmCampaign, &event.UtmCampaign)
-	checkStringForNull(contextsData.UtmContent, &event.UtmContent)
-	checkStringForNull(contextsData.UtmTerm, &event.UtmTerm)
-	checkStringForNull(contextsData.UtmSource, &event.UtmSource)
-	checkStringForNull(contextsData.UtmMedium, &event.UtmMedium)
 
 	// Bind unstructured event
 	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
