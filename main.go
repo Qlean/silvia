@@ -22,12 +22,14 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read push command body: " + err.Error(), http.StatusBadRequest)
+		log.Println("Failed to read push command body: " + err.Error())
 		return
 	}
 
 	normString, err := strconv.Unquote(`"` + string(body) + `"`)
 	if err != nil {
 		http.Error(w, "Failed to normalize nginx log string: " + err.Error(), http.StatusBadRequest)
+		log.Println("Failed to normalize nginx log string: " + err.Error())
 		return
 	}
 
@@ -35,6 +37,7 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
 		http.Error(w, "Failed to unmarshal JSON to NginxLog structure: " + err.Error(), http.StatusBadRequest)
+		log.Println("Failed to unmarshal JSON to NginxLog structure: " + err.Error())
 		return
 	}
 
@@ -43,6 +46,7 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	err = dbmap.Insert(nginxLogToEvent(nginxLog))
     if err != nil {
 		http.Error(w, "Failed to write data to database: " + err.Error(), http.StatusBadRequest)
+		log.Println("Failed to write data to database: " + err.Error())
 		return
 	}
 }
