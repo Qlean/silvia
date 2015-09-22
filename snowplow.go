@@ -1,11 +1,9 @@
 package main
 
 import(
-	// "fmt"
 	"time"
 	"strings"
 	"strconv"
-	// "encoding/json"
 )
 type SnowplowTimestamp struct {
 	time.Time

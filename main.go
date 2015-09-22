@@ -2,6 +2,7 @@ package main
 
 import(
 	"log"
+	"time"
 	"strconv"
 	"net/http"
 	"io/ioutil"
@@ -13,18 +14,20 @@ import(
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Status command accepted")
+	statusString := "Processed: " + strconv.Itoa(counter) + " Failed: " + strconv.Itoa(failCounter) + " Uptime: " + time.Since(startTime).String()
+	http.Error(w, statusString, http.StatusOK)
 }
 
 func pushHandler(w http.ResponseWriter, r *http.Request) {
 	counter++
+	localCounter := counter
 
 	log.Println(counter, "Push command accepted")
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Failed to read push command body: " + err.Error(), http.StatusBadRequest)
-		log.Println(counter, "Failed to read push command body:", err.Error())
+		eventFail(w, localCounter, "Failed to read push command body", err)
 		return
 	}
 
@@ -35,23 +38,20 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 
 	normString, err := strconv.Unquote(`"` + string(body) + `"`)
 	if err != nil {
-		http.Error(w, "Failed to normalize nginx log string: " + err.Error(), http.StatusBadRequest)
-		log.Println(counter, "Failed to normalize nginx log string:", err.Error())
+		eventFail(w, localCounter, "Failed to normalize nginx log string", err)
 		return
 	}
 
 	nginxLog := &NginxLog{}
 	err = json.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
-		http.Error(w, "Failed to unmarshal JSON to NginxLog structure: " + err.Error(), http.StatusBadRequest)
-		log.Println(counter, "Failed to unmarshal JSON to NginxLog structure:", err.Error())
+		eventFail(w, localCounter, "Failed to unmarshal JSON to NginxLog structure", err)
 		return
 	}
 
 	err = dbmap.Insert(nginxLogToEvent(nginxLog))
 	if err != nil {
-		http.Error(w, "Failed to write data to database: " + err.Error(), http.StatusBadRequest)
-		log.Println(counter, "Failed to write data to database:", err.Error())
+		eventFail(w, localCounter, "Failed to write data to database", err)
 		return
 	}
 
@@ -60,6 +60,8 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 
 var geo *geoip.GeoIP
 var counter int
+var failCounter int
+var startTime time.Time
 
 func main() {
 	var err error
@@ -87,6 +89,8 @@ func main() {
 	users.Methods("POST").
 		  Path("/push").
 		  HandlerFunc(pushHandler)
+
+	startTime = time.Now()
 
 	log.Println("Server running on port:", serverConfig.Port)
 	http.ListenAndServe(":" + serverConfig.Port, r)

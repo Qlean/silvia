@@ -1,6 +1,8 @@
 package main
 
 import(
+	"log"
+	"net/http"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
 )
@@ -25,3 +27,10 @@ func LoadConfig(filename string) (server_config *ServerConfig, err error) {
 
 	return
 }
+
+func eventFail(w http.ResponseWriter, localCounter int, errMessage string, err error) {
+	http.Error(w, errMessage + ": " + err.Error(), http.StatusBadRequest)
+	log.Println(localCounter, errMessage + ":", err.Error())
+	failCounter++
+}
+

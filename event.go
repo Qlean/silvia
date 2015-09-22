@@ -214,7 +214,17 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 		if err != nil {
 			log.Println("Cant Unmarshal contexts: ", err)
 		} else {
-			checkStringForNull(string(contextsField.Data[0][8:len(contextsField.Data[0])-1]), &event.Contexts)
+			rawContexts := contextsField.Data[0]
+			rawContexts = rawContexts[8:len(rawContexts)-1]
+
+			// is json?
+			var js interface{}
+			err := json.Unmarshal([]byte(rawContexts), &js)
+			if err != nil {
+				rawContexts = contextsField.Data[0]
+			}
+
+			checkStringForNull(string(rawContexts), &event.Contexts)
 		}
 
 
@@ -233,7 +243,6 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	} else {
 		event.Contexts.Valid = false
 	}
-
 
 	// Bind unstructured event
 	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
