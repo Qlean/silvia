@@ -1,4 +1,4 @@
-FROM golang:1.4.2-wheezy
+FROM golang:1.4.3-wheezy
 MAINTAINER Qlean
 
 # Install system dependencies
