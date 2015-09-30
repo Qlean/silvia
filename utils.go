@@ -9,7 +9,8 @@ import(
 
 type ServerConfig struct {
 	Port      string
-	Pgconnect string
+	PgConnect string `yaml:"pg_connect"`
+	RingSize  int    `yaml:"ring_size"`
 }
 
 var serverConfig *ServerConfig
@@ -28,9 +29,11 @@ func LoadConfig(filename string) (server_config *ServerConfig, err error) {
 	return
 }
 
-func eventFail(w http.ResponseWriter, localCounter int, errMessage string, err error) {
-	http.Error(w, errMessage + ": " + err.Error(), http.StatusBadRequest)
-	log.Println(localCounter, errMessage + ":", err.Error())
+func eventFail(w http.ResponseWriter, localCounter int, errMessage string, err error, body []byte, nginxLog *NginxLog, event *Event) {
+	message := errMessage + ": " + err.Error()
+	http.Error(w, message, http.StatusBadRequest)
+	log.Println(localCounter, message)
+	failRing.Add(body, nginxLog, event, message)
 	failCounter++
 }
 
