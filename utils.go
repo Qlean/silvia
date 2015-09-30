@@ -29,7 +29,7 @@ func LoadConfig(filename string) (server_config *ServerConfig, err error) {
 	return
 }
 
-func eventFail(w http.ResponseWriter, localCounter int, errMessage string, err error, body []byte, nginxLog *NginxLog, event *Event) {
+func eventFail(w http.ResponseWriter, localCounter int, errMessage string, err error, body string, nginxLog *NginxLog, event *Event) {
 	message := errMessage + ": " + err.Error()
 	http.Error(w, message, http.StatusBadRequest)
 	log.Println(localCounter, message)

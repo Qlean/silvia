@@ -1,7 +1,5 @@
 package main
 
-import "log"
-
 type RingItem struct {
 	Body     string
 	Event    *Event
@@ -15,14 +13,9 @@ type Ring struct {
 var successRing *Ring = &Ring{}
 var failRing *Ring = &Ring{}
 
-func (ring *Ring) Add(body []byte, nginxlog *NginxLog, event *Event, info string) {
-
-	bodyString := string(body)
-
-	log.Println(bodyString)
-
+func (ring *Ring) Add(body string, nginxlog *NginxLog, event *Event, info string) {
 	ringItem := &RingItem{
-		Body: bodyString,
+		Body: body,
 		Event: event,
 		Info: info,
 	}

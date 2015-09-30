@@ -55,35 +55,34 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err = ioutil.ReadAll(r.Body)
 	if err != nil {
-		eventFail(w, localCounter, "Failed to read push command body", err, body, nginxLog, event)
+		eventFail(w, localCounter, "Failed to read push command body", err, "", nginxLog, event)
 		return
 	}
 
-	log.Println(counter, "Raw event:", string(body))
-
 	// Remove Line Feed
 	body = body[0:len(body)-1]
+	rawBody := string(body)
 
-	normString, err := strconv.Unquote(`"` + string(body) + `"`)
+	normString, err := strconv.Unquote(`"` + rawBody + `"`)
 	if err != nil {
-		eventFail(w, localCounter, "Failed to normalize nginx log string", err, body, nginxLog, event)
+		eventFail(w, localCounter, "Failed to normalize nginx log string", err, rawBody, nginxLog, event)
 		return
 	}
 
 	err = json.Unmarshal([]byte(normString), nginxLog)
 	if err != nil {
-		eventFail(w, localCounter, "Failed to unmarshal JSON to NginxLog structure", err, body, nginxLog, event)
+		eventFail(w, localCounter, "Failed to unmarshal JSON to NginxLog structure", err, normString, nginxLog, event)
 		return
 	}
 
 	event = nginxLogToEvent(nginxLog)
 	err = dbmap.Insert(event)
 	if err != nil {
-		eventFail(w, localCounter, "Failed to write data to database", err, body, nginxLog, event)
+		eventFail(w, localCounter, "Failed to write data to database", err, normString, nginxLog, event)
 		return
 	}
 
-	successRing.Add(body, nginxLog, event, "success")
+	successRing.Add(normString, nginxLog, event, "success")
 	log.Println(counter, "Succesfuly witten")
 }
 
