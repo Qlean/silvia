@@ -15,12 +15,24 @@ import(
 
 func successHandler(w http.ResponseWriter, r *http.Request) {
 	rndr := render.New()
-	rndr.JSON(w, http.StatusOK, successRing.Ring)
+	b, err := json.MarshalIndent(successRing.Ring, "", "  ")
+	if err != nil {
+		rndr.Text(w, http.StatusBadRequest, "Cant draw pretty JSON")
+		return
+	}
+
+	rndr.Text(w, http.StatusOK, string(b))
 }
 
 func failedHandler(w http.ResponseWriter, r *http.Request) {
 	rndr := render.New()
-	rndr.JSON(w, http.StatusOK, failRing.Ring)
+	b, err := json.MarshalIndent(failRing.Ring, "", "  ")
+	if err != nil {
+		rndr.Text(w, http.StatusBadRequest, "Cant draw pretty JSON")
+		return
+	}
+
+	rndr.Text(w, http.StatusOK, string(b))
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
