@@ -47,6 +47,11 @@ type SnowplowData struct {
 	UserFingerprint string            `json:"fp"`
 	UserID          string            `json:"uid"`
 	UnstructEvent   string            `json:"ue_pr"`
+	SeCategory      string            `json:"se_ca"`
+	SeAction        string            `json:"se_ac"`
+	SeLabel         string            `json:"se_la"`
+	SeProperty      string            `json:"se_pr"`
+	SeValue         string            `json:"se_va"`
 }
 
 

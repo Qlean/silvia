@@ -124,6 +124,15 @@ func checkIntForNull(snowplowInt string, event *sql.NullInt64) {
 	}
 }
 
+func checkFloatForNull(snowplowFloat string, event *sql.NullFloat64) {
+	if snowplowFloat == "" {
+		event.Valid = false
+	} else {
+		event.Float64, _ = strconv.ParseFloat(snowplowFloat, 64)
+		event.Valid = true
+	}
+}
+
 func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	// Initialize object
 	event = &Event{}
@@ -151,6 +160,11 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 	checkStringForNull(snowplowData.EventID, &event.EventID)
 	checkStringForNull(snowplowData.DomainUserID, &event.DomainUserID)
 	checkStringForNull(snowplowData.UserFingerprint, &event.UserFingerprint)
+	checkStringForNull(snowplowData.SeCategory, &event.SeCategory)
+	checkStringForNull(snowplowData.SeAction, &event.SeAction)
+	checkStringForNull(snowplowData.SeLabel, &event.SeLabel)
+	checkStringForNull(snowplowData.SeProperty, &event.SeProperty)
+	checkFloatForNull(snowplowData.SeValue, &event.SeValue)
 
 	// Bind integer values
 	checkIntForNull(snowplowData.BrColorDepth, &event.BrColorDepth)
