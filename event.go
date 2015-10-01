@@ -119,7 +119,12 @@ func checkIntForNull(snowplowInt string, event *sql.NullInt64) {
 	if snowplowInt == "" {
 		event.Valid = false
 	} else {
-		event.Int64, _ = strconv.ParseInt(snowplowInt, 10, 64)
+		event.Int64, err := strconv.ParseInt(snowplowInt, 10, 64)
+		if err != nil {
+			event.Valid = false
+			return
+		}
+
 		event.Valid = true
 	}
 }
@@ -128,7 +133,12 @@ func checkFloatForNull(snowplowFloat string, event *sql.NullFloat64) {
 	if snowplowFloat == "" {
 		event.Valid = false
 	} else {
-		event.Float64, _ = strconv.ParseFloat(snowplowFloat, 64)
+		event.Float64, err := strconv.ParseFloat(snowplowFloat, 64)
+		if err != nil {
+			event.Valid = false
+			return
+		}
+
 		event.Valid = true
 	}
 }
@@ -260,7 +270,6 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 
 	// Bind unstructured event
 	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
-	event.SeValue.Valid = false
 
 	return
 }
