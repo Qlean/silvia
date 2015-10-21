@@ -4,6 +4,7 @@ import(
 	"log"
 	"time"
 	"strconv"
+	"strings"
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
@@ -62,6 +63,7 @@ func pushHandler(w http.ResponseWriter, r *http.Request) {
 	// Remove Line Feed
 	body = body[0:len(body)-1]
 	rawBody := string(body)
+	rawBody = strings.Replace(rawBody, "\n", "", -1)
 
 	normString, err := strconv.Unquote(`"` + rawBody + `"`)
 	if err != nil {
