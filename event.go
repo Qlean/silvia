@@ -106,6 +106,8 @@ type Event struct {
 	DocHeight       int `db:"doc_height"`
 }
 
+var eventsChannel chan *Event = make(chan *Event, 32)
+
 func checkStringForNull(snowplowStr string, event *sql.NullString) {
 	if len(snowplowStr) == 0 {
 		event.Valid = false

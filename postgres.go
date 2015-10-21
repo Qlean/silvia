@@ -22,3 +22,20 @@ func initDb() *gorp.DbMap {
 
 	return dbmap
 }
+
+func postgresWriter() {
+	var err error
+	var event *Event
+
+	for {
+		event = <- eventsChannel
+		err = dbmap.Insert()
+		if err != nil {
+			eventFail(counter, "Failed to write data to database", err, "", &NginxLog{}, event)
+			return
+		}
+
+		successRing.Add("", &NginxLog{}, event, "success")
+		log.Println(counter, "Succesfuly witten")
+	}
+}

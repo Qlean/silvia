@@ -4,9 +4,7 @@ import(
 	"log"
 	"time"
 	"strconv"
-	"strings"
 	"net/http"
-	"io/ioutil"
 	"encoding/json"
 
 	"github.com/gorilla/mux"
@@ -42,52 +40,6 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, statusString, http.StatusOK)
 }
 
-func pushHandler(w http.ResponseWriter, r *http.Request) {
-	counter++
-	localCounter := counter
-
-	var err error
-	var body []byte
-	var nginxLog *NginxLog = &NginxLog{}
-	var event *Event
-
-	log.Println(counter, "Push command accepted")
-
-	defer r.Body.Close()
-	body, err = ioutil.ReadAll(r.Body)
-	if err != nil {
-		eventFail(w, localCounter, "Failed to read push command body", err, "", nginxLog, event)
-		return
-	}
-
-	// Remove Line Feed
-	body = body[0:len(body)-1]
-	rawBody := string(body)
-	rawBody = strings.Replace(rawBody, "\n", "", -1)
-
-	normString, err := strconv.Unquote(`"` + rawBody + `"`)
-	if err != nil {
-		eventFail(w, localCounter, "Failed to normalize nginx log string", err, rawBody, nginxLog, event)
-		return
-	}
-
-	err = json.Unmarshal([]byte(normString), nginxLog)
-	if err != nil {
-		eventFail(w, localCounter, "Failed to unmarshal JSON to NginxLog structure", err, normString, nginxLog, event)
-		return
-	}
-
-	event = nginxLogToEvent(nginxLog)
-	err = dbmap.Insert(event)
-	if err != nil {
-		eventFail(w, localCounter, "Failed to write data to database", err, normString, nginxLog, event)
-		return
-	}
-
-	successRing.Add(normString, nginxLog, event, "success")
-	log.Println(counter, "Succesfuly witten")
-}
-
 var geo *geoip.GeoIP
 var counter int
 var failCounter int
@@ -111,20 +63,20 @@ func main() {
 
 	r := mux.NewRouter()
 
-	users := r.PathPrefix("/api/v1").Subrouter()
+	api := r.PathPrefix("/api/v1").Subrouter()
 
-	users.Methods("GET").
+	api.Methods("GET").
 		  Path("/status").
 		  HandlerFunc(statusHandler)
-	users.Methods("GET").
+	api.Methods("GET").
 		  Path("/failed").
 		  HandlerFunc(failedHandler)
-	users.Methods("GET").
+	api.Methods("GET").
 		  Path("/success").
 		  HandlerFunc(successHandler)
-	users.Methods("POST").
-		  Path("/push").
-		  HandlerFunc(pushHandler)
+
+	go rabbitConsumer()
+	go postgresWriter()
 
 	startTime = time.Now()
 
