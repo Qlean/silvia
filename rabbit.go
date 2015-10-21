@@ -23,57 +23,43 @@ func rabbitConsumer() {
 
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare(
-		"snowplow", // name
-		true,   // durable
-		false,    // delete when usused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
-	)
+	q, err := ch.QueueDeclare("snowplow", true, false, false, false, nil)
 
 	if err != nil {
 		log.Fatal(err, "Failed to declare a queue")
 	}
 
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		false,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
+	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 
 	for d := range msgs {
 		counter++
-		localCounter := counter
-
-		var err error
-		var nginxLog *NginxLog = &NginxLog{}
-		var event *Event
 
 		log.Println(counter, "Event accepted")
 
-		// Remove Line Feed
-		d.Body = d.Body[0:len(d.Body)-1]
-		rawBody := string(d.Body)
-
-		normString, err := strconv.Unquote(`"` + rawBody + `"`)
+		normString, nginxLog, event, err := processEventBody(d.Body)
 		if err != nil {
-			eventFail(localCounter, "Failed to normalize nginx log string", err, rawBody, nginxLog, event)
-			return
+			failRing.Add(normString, nginxLog, event, err.Error())
+			log.Println(counter, err)
+		} else {
+			d.Ack(true)
+			successRing.Add(normString, nginxLog, event, "success")
+			log.Println(counter, "Succesfuly witten")
 		}
-
-		err = json.Unmarshal([]byte(normString), nginxLog)
-		if err != nil {
-			eventFail(localCounter, "Failed to unmarshal JSON to NginxLog structure", err, normString, nginxLog, event)
-			return
-		}
-
-		d.Ack(true)
-
-		eventsChannel <- nginxLogToEvent(nginxLog)
 	}
+}
+
+func processEventBody(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
+	normString, err = strconv.Unquote(`"` + string(eventBody) + `"`)
+	if err != nil { return }
+
+	nginxLog = &NginxLog{}
+	err = json.Unmarshal([]byte(normString), nginxLog)
+	if err != nil { return }
+
+	event = nginxLogToEvent(nginxLog)
+
+	err = dbmap.Insert(event)
+	if err != nil { return }
+
+	return
 }

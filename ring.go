@@ -7,7 +7,8 @@ type RingItem struct {
 }
 
 type Ring struct {
-	Ring []*RingItem
+	Ring  []*RingItem
+	Total int
 }
 
 var successRing *Ring = &Ring{}
@@ -21,6 +22,7 @@ func (ring *Ring) Add(body string, nginxlog *NginxLog, event *Event, info string
 	}
 
 	ring.Ring = append(ring.Ring, ringItem)
+	ring.Total++
 
 	if len(ring.Ring) > serverConfig.RingSize { ring.Ring = ring.Ring[1:] }
 }

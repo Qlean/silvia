@@ -1,7 +1,6 @@
 package main
 
 import(
-	"log"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
 )
@@ -26,12 +25,5 @@ func LoadConfig(filename string) (server_config *ServerConfig, err error) {
 	}
 
 	return
-}
-
-func eventFail(localCounter int, errMessage string, err error, body string, nginxLog *NginxLog, event *Event) {
-	message := errMessage + ": " + err.Error()
-	log.Println(localCounter, message)
-	failRing.Add(body, nginxLog, event, message)
-	failCounter++
 }
 

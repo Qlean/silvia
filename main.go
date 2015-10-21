@@ -35,18 +35,17 @@ func failedHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Status command accepted")
-	statusString := "Processed: " + strconv.Itoa(counter) + " Failed: " + strconv.Itoa(failCounter) + " Uptime: " + time.Since(startTime).String()
+	statusString := "Processed: " + strconv.Itoa(counter) + " Failed: " + strconv.Itoa(failRing.Total) + " Uptime: " + time.Since(startTime).String()
 	http.Error(w, statusString, http.StatusOK)
 }
 
 var geo *geoip.GeoIP
 var counter int
-var failCounter int
 var startTime time.Time
 
 func main() {
 	var err error
+
 	serverConfig, err = LoadConfig("config.yaml")
 	if err != nil {
 		log.Println("Config error: ", err)
@@ -59,12 +58,12 @@ func main() {
 	}
 
 	dbmap = initDb()
+
 	defer dbmap.Db.Close()
 
 	r := mux.NewRouter()
 
 	api := r.PathPrefix("/api/v1").Subrouter()
-
 	api.Methods("GET").
 		  Path("/status").
 		  HandlerFunc(statusHandler)
@@ -76,7 +75,6 @@ func main() {
 		  HandlerFunc(successHandler)
 
 	go rabbitConsumer()
-	go postgresWriter()
 
 	startTime = time.Now()
 
