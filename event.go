@@ -213,13 +213,15 @@ func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
 
 	// Bind Geo values
 	geoIPRecord := geo.GetRecord(nginxLog.IPAddress)
-	checkStringForNull(geoIPRecord.CountryName, &event.GeoCountry)
-	checkStringForNull(geoIPRecord.Region, &event.GeoRegion)
-	checkStringForNull(geoIPRecord.City, &event.GeoCity)
-	checkStringForNull(geoIPRecord.PostalCode, &event.GeoZipcode)
-	event.GeoLatitude = geoIPRecord.Latitude
-	event.GeoLongtitude = geoIPRecord.Longitude
-	checkStringForNull(geoIPRecord.Region, &event.GeoRegionName)
+	if geoIPRecord != nil {
+		checkStringForNull(geoIPRecord.CountryName, &event.GeoCountry)
+		checkStringForNull(geoIPRecord.Region, &event.GeoRegion)
+		checkStringForNull(geoIPRecord.City, &event.GeoCity)
+		checkStringForNull(geoIPRecord.PostalCode, &event.GeoZipcode)
+		event.GeoLatitude = geoIPRecord.Latitude
+		event.GeoLongtitude = geoIPRecord.Longitude
+		checkStringForNull(geoIPRecord.Region, &event.GeoRegionName)
+	}
 
 	// Bind useragent values
 
