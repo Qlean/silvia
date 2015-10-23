@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strconv"
+	"strings"
 	"encoding/json"
 
 	"github.com/streadway/amqp"
@@ -38,6 +39,7 @@ func rabbitConsumer() {
 
 		normString, nginxLog, event, err := processEventBody(d.Body)
 		if err != nil {
+			d.Ack(true)
 			failRing.Add(normString, nginxLog, event, err.Error())
 			log.Println(counter, err)
 		} else {
@@ -50,6 +52,7 @@ func rabbitConsumer() {
 
 func processEventBody(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
 	normString, err = strconv.Unquote(`"` + string(eventBody) + `"`)
+	normString = strings.Replace(normString, "\" ", "", -1)
 	if err != nil { return }
 
 	nginxLog = &NginxLog{}
