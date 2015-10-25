@@ -6,9 +6,11 @@ import(
 )
 
 type ServerConfig struct {
-	Port      string
-	PgConnect string `yaml:"pg_connect"`
-	RingSize  int    `yaml:"ring_size"`
+	Port       string
+	PgConnect  string `yaml:"pg_connect"`
+	RingSize   int    `yaml:"ring_size"`
+	RabbitAddr string `yaml:"rabbit_addr"`
+	RabbitPort string `yaml:"rabbit_port"`
 }
 
 var serverConfig *ServerConfig

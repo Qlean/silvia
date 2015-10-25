@@ -1,7 +1,9 @@
 package main
 
 import (
+	"net"
 	"log"
+	"time"
 	"strconv"
 	"strings"
 	"encoding/json"
@@ -9,28 +11,54 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func rabbitConsumer() {
-	conn, err := amqp.Dial("amqp://guest:guest@rabbitmq.service.consul/")
+var rabbitConnChan chan *amqp.Connection = make(chan *amqp.Connection)
+var rabbitFailChan chan bool = make(chan bool)
+
+func rabbitConnect() {
+	addrs, err := net.LookupIP(serverConfig.RabbitAddr)
 	if err != nil {
-		log.Fatal(err, "Failed to connect to RabbitMQ")
+		log.Println(err)
+		rabbitFailChan <- true
+		return
 	}
 
+	addr := addrs[0].String() + ":" + serverConfig.RabbitPort
+
+	conn, err := amqp.Dial("amqp://guest:guest@" + addr + "/")
+	if err != nil {
+		log.Println(err)
+		rabbitFailChan <- true
+		return
+	}
+
+	log.Println("Connected to:", addr)
+
+	rabbitConnChan <- conn
+}
+
+func rabbitConsumer(conn *amqp.Connection) {
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatal(err, "Failed to open a channel")
+		log.Println(err, "Failed to open a channel")
+		return
 	}
 
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare("snowplow", true, false, false, false, nil)
-
 	if err != nil {
-		log.Fatal(err, "Failed to declare a queue")
+		log.Println(err, "Failed to declare a queue")
+		return
 	}
 
 	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
+	if err != nil {
+		log.Println(err, "Failed to consume messages")
+		return
+	}
+
 
 	for d := range msgs {
 		counter++
@@ -46,6 +74,20 @@ func rabbitConsumer() {
 			d.Ack(true)
 			successRing.Add(normString, nginxLog, event, "success")
 			log.Println(counter, "Succesfuly witten")
+		}
+	}
+}
+
+func rabbitWorker() {
+	for {
+		go rabbitConnect()
+		select {
+			case conn := <- rabbitConnChan:
+				rabbitConsumer(conn)
+				log.Println("Connection was reseted! Trying reconnect...")
+			case <- rabbitFailChan:
+				log.Println("Can't connect to RabbitMQ! Retry after 5s")
+				time.Sleep(5*time.Second)
 		}
 	}
 }

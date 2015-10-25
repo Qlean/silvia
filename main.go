@@ -74,7 +74,7 @@ func main() {
 		  Path("/success").
 		  HandlerFunc(successHandler)
 
-	go rabbitConsumer()
+	go rabbitWorker()
 
 	startTime = time.Now()
 
