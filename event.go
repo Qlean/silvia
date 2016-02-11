@@ -10,101 +10,157 @@ import(
 	"github.com/mssola/user_agent"
 )
 
-type SnowplowContextsData struct {
-	Data struct {
-		UtmSource   string `json:"utm_source"`
-		UtmMedium   string `json:"utm_medium"`
-		UtmCampaign string `json:"utm_campaign"`
-		UtmContent  string `json:"utm_content"`
-		UtmTerm     string `json:"utm_term"`
+type(
+	SnowplowContextsData struct {
+		Data struct {
+			UtmSource   string `json:"utm_source"`
+			UtmMedium   string `json:"utm_medium"`
+			UtmCampaign string `json:"utm_campaign"`
+			UtmContent  string `json:"utm_content"`
+			UtmTerm     string `json:"utm_term"`
+		}
 	}
-}
 
-type SnowplowContexts struct {
-	Schema string                 `json:"schema"`
-	Data   []SnowplowContextsData `json:"data"`
-}
+	SnowplowContexts struct {
+		Schema string                 `json:"schema"`
+		Data   []SnowplowContextsData `json:"data"`
+	}
 
-type SnowplowContextsJsonField struct {
-	Schema string `json:"schema"`
-	Data   []json.RawMessage `json:"data"`
-}
+	SnowplowContextsJsonField struct {
+		Schema string `json:"schema"`
+		Data   []json.RawMessage `json:"data"`
+	}
 
-type Event struct {
-	Id              int    `db:"-"`
-	Aid             sql.NullString `db:"app_id"`
-	Platform        sql.NullString `db:"platform"`
-	CollectorTstamp time.Time `db:"collector_tstamp"`
-	DvceTstamp      time.Time `db:"dvce_tstamp"`
-	Event           sql.NullString `db:"event"`
-	EventID         sql.NullString `db:"event_id"`
-	VTracker        sql.NullString `db:"v_tracker"`
-	UserID          sql.NullInt64 `db:"user_id"`
-	UserIP          sql.NullString `db:"user_ipaddress"`
-	UserFingerprint sql.NullString `db:"user_fingerprint"`
-	DomainUserID    sql.NullString `db:"domain_userid"`
-	VisitNum        sql.NullInt64 `db:"visit_num"`
-	SessionID       sql.NullString `db:"session_id"`
-	GeoCountry      sql.NullString `db:"geo_country"`
-	GeoRegion       sql.NullString `db:"geo_region"`
-	GeoCity         sql.NullString `db:"geo_city"`
-	GeoZipcode      sql.NullString `db:"geo_zipcode"`
-	GeoLatitude     float32 `db:"geo_latitude"`
-	GeoLongtitude   float32 `db:"geo_longitude"`
-	GeoRegionName   sql.NullString `db:"geo_region_name"`
-	PageURL         sql.NullString `db:"page_url"`
-	PageTtile       sql.NullString `db:"page_title"`
-	PageReferrer    sql.NullString `db:"page_referrer"`
-	PageURLHost     sql.NullString `db:"page_urlhost"`
-	PageURLPath     sql.NullString `db:"page_urlpath"`
-	PageURLQuery    sql.NullString `db:"page_urlquery"`
-	RefrURLHost     sql.NullString `db:"refr_urlhost"`
-	RefrURLPath     sql.NullString `db:"refr_urlpath"`
-	RefrURLQuety    sql.NullString `db:"refr_urlquery"`
-	UtmMedium       sql.NullString `db:"utm_medium"`
-	UtmSource       sql.NullString `db:"utm_source"`
-	UtmTerm         sql.NullString `db:"utm_term"`
-	UtmContent      sql.NullString `db:"utm_content"`
-	UtmCampaign     sql.NullString `db:"utm_campaign"`
-	Contexts        sql.NullString `db:"contexts"`
-	SeCategory      sql.NullString `db:"se_category"`
-	SeAction        sql.NullString `db:"se_action"`
-	SeLabel         sql.NullString `db:"se_label"`
-	SeProperty      sql.NullString `db:"se_property"`
-	SeValue         sql.NullFloat64 `db:"se_value"`
-	UnstructEvent   sql.NullString `db:"unstruct_event"`
-	Useragent       sql.NullString `db:"useragent"`
-	BrName          sql.NullString `db:"br_name"`
-	BrFamily        sql.NullString `db:"br_family"`
-	BrVersion       sql.NullString `db:"br_version"`
-	BrType          sql.NullString `db:"br_type"`
-	BrRndrNgn       sql.NullString `db:"br_renderengine"`
-	BrLang          sql.NullString `db:"br_lang"`
-	BrPDF           bool `db:"br_features_pdf"`
-	BrFlash         bool `db:"br_features_flash"`
-	BrJava          bool `db:"br_features_java"`
-	BrDir           bool `db:"br_features_director"`
-	BrQT            bool `db:"br_features_quicktime"`
-	BrRealPlayer    bool `db:"br_features_realplayer"`
-	BrWMA           bool `db:"br_features_windowsmedia"`
-	BrGears         bool `db:"br_features_gears"`
-	BrAg            bool `db:"br_features_silverlight"`
-	BrCookies       bool `db:"br_cookies"`
-	BrColorDepth    sql.NullInt64  `db:"br_colordepth"`
-	BrViewWidth     int `db:"br_viewwidth"`
-	BrViewHeight    int `db:"br_viewheight"`
-	OsName          sql.NullString `db:"os_name"`
-	OsFamily        sql.NullString `db:"os_family"`
-	OsManufacturer  sql.NullString `db:"os_manufacturer"`
-	OsTimezone      sql.NullString `db:"os_timezone"`
-	DvceType        sql.NullString `db:"dvce_type"`
-	DvceIsMobile    bool `db:"dvce_ismobile"`
-	DvceScreenWidth int `db:"dvce_screenwidth"`
-	DvceScreenHeight int `db:"dvce_screenheight"`
-	DocCharset      sql.NullString `db:"doc_charset"`
-	DocWidth        int `db:"doc_width"`
-	DocHeight       int `db:"doc_height"`
-}
+	SnowplowEvent struct {
+		Id              int             `db:"-"`
+		Aid             sql.NullString  `db:"app_id"`
+		Platform        sql.NullString  `db:"platform"`
+		CollectorTstamp time.Time       `db:"collector_tstamp"`
+		DvceTstamp      time.Time       `db:"dvce_tstamp"`
+		Event           sql.NullString  `db:"event"`
+		EventID         sql.NullString  `db:"event_id"`
+		VTracker        sql.NullString  `db:"v_tracker"`
+		UserID          sql.NullInt64   `db:"user_id"`
+		UserIP          sql.NullString  `db:"user_ipaddress"`
+		UserFingerprint sql.NullString  `db:"user_fingerprint"`
+		DomainUserID    sql.NullString  `db:"domain_userid"`
+		VisitNum        sql.NullInt64   `db:"visit_num"`
+		SessionID       sql.NullString  `db:"session_id"`
+		GeoCountry      sql.NullString  `db:"geo_country"`
+		GeoRegion       sql.NullString  `db:"geo_region"`
+		GeoCity         sql.NullString  `db:"geo_city"`
+		GeoZipcode      sql.NullString  `db:"geo_zipcode"`
+		GeoLatitude     float32         `db:"geo_latitude"`
+		GeoLongtitude   float32         `db:"geo_longitude"`
+		GeoRegionName   sql.NullString  `db:"geo_region_name"`
+		PageURL         sql.NullString  `db:"page_url"`
+		PageTtile       sql.NullString  `db:"page_title"`
+		PageReferrer    sql.NullString  `db:"page_referrer"`
+		PageURLHost     sql.NullString  `db:"page_urlhost"`
+		PageURLPath     sql.NullString  `db:"page_urlpath"`
+		PageURLQuery    sql.NullString  `db:"page_urlquery"`
+		RefrURLHost     sql.NullString  `db:"refr_urlhost"`
+		RefrURLPath     sql.NullString  `db:"refr_urlpath"`
+		RefrURLQuety    sql.NullString  `db:"refr_urlquery"`
+		UtmMedium       sql.NullString  `db:"utm_medium"`
+		UtmSource       sql.NullString  `db:"utm_source"`
+		UtmTerm         sql.NullString  `db:"utm_term"`
+		UtmContent      sql.NullString  `db:"utm_content"`
+		UtmCampaign     sql.NullString  `db:"utm_campaign"`
+		Contexts        sql.NullString  `db:"contexts"`
+		SeCategory      sql.NullString  `db:"se_category"`
+		SeAction        sql.NullString  `db:"se_action"`
+		SeLabel         sql.NullString  `db:"se_label"`
+		SeProperty      sql.NullString  `db:"se_property"`
+		SeValue         sql.NullFloat64 `db:"se_value"`
+		UnstructEvent   sql.NullString  `db:"unstruct_event"`
+		Useragent       sql.NullString  `db:"useragent"`
+		BrName          sql.NullString  `db:"br_name"`
+		BrFamily        sql.NullString  `db:"br_family"`
+		BrVersion       sql.NullString  `db:"br_version"`
+		BrType          sql.NullString  `db:"br_type"`
+		BrRndrNgn       sql.NullString  `db:"br_renderengine"`
+		BrLang          sql.NullString  `db:"br_lang"`
+		BrPDF           bool            `db:"br_features_pdf"`
+		BrFlash         bool            `db:"br_features_flash"`
+		BrJava          bool            `db:"br_features_java"`
+		BrDir           bool            `db:"br_features_director"`
+		BrQT            bool            `db:"br_features_quicktime"`
+		BrRealPlayer    bool            `db:"br_features_realplayer"`
+		BrWMA           bool            `db:"br_features_windowsmedia"`
+		BrGears         bool            `db:"br_features_gears"`
+		BrAg            bool            `db:"br_features_silverlight"`
+		BrCookies       bool            `db:"br_cookies"`
+		BrColorDepth    sql.NullInt64   `db:"br_colordepth"`
+		BrViewWidth     int             `db:"br_viewwidth"`
+		BrViewHeight    int             `db:"br_viewheight"`
+		OsName          sql.NullString  `db:"os_name"`
+		OsFamily        sql.NullString  `db:"os_family"`
+		OsManufacturer  sql.NullString  `db:"os_manufacturer"`
+		OsTimezone      sql.NullString  `db:"os_timezone"`
+		DvceType        sql.NullString  `db:"dvce_type"`
+		DvceIsMobile    bool            `db:"dvce_ismobile"`
+		DvceScreenWidth int             `db:"dvce_screenwidth"`
+		DvceScreenHeight int            `db:"dvce_screenheight"`
+		DocCharset      sql.NullString  `db:"doc_charset"`
+		DocWidth        int             `db:"doc_width"`
+		DocHeight       int             `db:"doc_height"`
+	}
+
+	AdjustEvent struct {
+		Id         int            `db:"-"`
+		Aid        sql.NullString `db:"app_id"`
+		An         sql.NullString `db:"app_name"`
+		Av         sql.NullString `db:"app_version"`
+		St         sql.NullString `db:"store"`
+		Tr         sql.NullString `db:"tracker"`
+		Ptr        sql.NullString `db:"previous_tracker"`
+		TrNetwork  sql.NullString `db:"tracker_network"`
+		TrCampaign sql.NullString `db:"tracker_campaign"`
+		TrAdgroup  sql.NullString `db:"tracker_adgroup"`
+		TrCreative sql.NullString `db:"tracker_creative"`
+		Imp        impression_based	smallint
+		Org        is_organic	smallint
+		Rej        sql.NullString `db:"rejection_reason"`
+		Adid       sql.NullString `db:"adjust_device_id"`
+		Idfa       sql.NullString `db:"idfa"`
+		Anid       sql.NullString `db:"android_id"`
+		Mac        sql.NullString `db:"mac_sha1"`
+		Mt         sql.NullString `db:"match_type"`
+		Ref        sql.NullString `db:"referrer"`
+		Ua         sql.NullString `db:"user_agent"`
+		Ip         sql.NullString `db:"ip_address"`
+		Clt        clicked_at	timestamp without time zone
+		It         installed_at	timestamp without time zone
+		Ct         event_at	timestamp without time zone
+		Rt         reattributed_at	timestamp without time zone
+		Reg        sql.NullString `db:"region"`
+		C          sql.NullString `db:"country"`
+		Lng        sql.NullString `db:"language"`
+		Dn         sql.NullString `db:"device_name"`
+		Dt         sql.NullString `db:"device_type"`
+		Os         sql.NullString `db:"os_name"`
+		Osv        sql.NullString `db:"os_version"`
+		Env        sql.NullString `db:"environment"`
+		Tre        tracking_enabled	smallint
+		Tz         sql.NullString `db:"device_timezone"`
+		Ls         last_session_sec	integer
+		Cs         current_session_sec	integer
+		Dl         sql.NullString `db:"deeplink"`
+		Pp         sql.NullString `db:"partner_parameters"`
+		FbCgn      sql.NullString `db:"fb_campaign_group_name"`
+		FbCgid     sql.NullString `db:"fb_campaign_group_id"`
+		FbCn       sql.NullString `db:"fb_campaign_name"`
+		GbCid      sql.NullString `db:"fb_campaign_id"`
+		FbAdn      sql.NullString `db:"fb_adgroup_name"`
+		FbAdid     sql.NullString `db:"fb_adgroup_id"`
+		Pubp       sql.NullString `db:"publisher_parameters"`
+		L          sql.NullString `db:"label"`
+		Eg         sql.NullString `db:"event_group"`
+		Et         sql.NullString `db:"event_token"`
+		En         sql.NullString `db:"event_name"`
+	}
+)
 
 func checkStringForNull(snowplowStr string, event *sql.NullString) {
 	if len(snowplowStr) == 0 {
@@ -147,10 +203,10 @@ func checkFloatForNull(snowplowFloat string, event *sql.NullFloat64) {
 	}
 }
 
-func nginxLogToEvent(nginxLog *NginxLog) (event *Event) {
+func nginxLogToEvent(nginxLog *NginxLog) (event *SnowplowEvent) {
 
 	// Initialize object
-	event = &Event{}
+	event = &SnowplowEvent{}
 
 	// Binding first level nginx fields
 	checkStringForNull(nginxLog.IPAddress, &event.UserIP)

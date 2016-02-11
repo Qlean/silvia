@@ -18,7 +18,8 @@ func initDb() *gorp.DbMap {
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 
-	dbmap.AddTableWithNameAndSchema(Event{}, "atomic", "events").SetKeys(true, "Id")
+	dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events").SetKeys(true, "Id")
+	dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events").SetKeys(true, "Id")
 
 	return dbmap
 }

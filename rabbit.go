@@ -12,13 +12,14 @@ import (
 )
 
 var rabbitConnChan chan *amqp.Connection = make(chan *amqp.Connection)
-var rabbitFailChan chan bool = make(chan bool)
+var rabbitConnectionFailChan chan bool = make(chan bool)
+var rabbitConsumerFailChan chan bool = make(chan bool)
 
 func rabbitConnect() {
 	addrs, err := net.LookupIP(serverConfig.RabbitAddr)
 	if err != nil {
 		log.Println(err)
-		rabbitFailChan <- true
+		rabbitConnectionFailChan <- true
 		return
 	}
 
@@ -36,17 +37,8 @@ func rabbitConnect() {
 	rabbitConnChan <- conn
 }
 
-func rabbitConsumer(conn *amqp.Connection) {
-	defer conn.Close()
 
-	ch, err := conn.Channel()
-	if err != nil {
-		log.Println(err, "Failed to open a channel")
-		return
-	}
-
-	defer ch.Close()
-
+func rabbitConsumer(ch *amqp.Channel, queue string, performerFunc func()) {
 	q, err := ch.QueueDeclare("snowplow", true, false, false, false, nil)
 	if err != nil {
 		log.Println(err, "Failed to declare a queue")
@@ -78,21 +70,38 @@ func rabbitConsumer(conn *amqp.Connection) {
 	}
 }
 
+func rabbitChannel(conn *amqp.Connection) {
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Println(err, "Failed to open a channel")
+		return
+	}
+
+	defer ch.Close()
+
+	go rabbitConsumer(ch, "snowplow", processSnowplowEvent())
+	go rabbitConsumer(ch, "adjust", processAdjustEvent())
+
+	<- rabbitConsumerFailChan
+}
+
 func rabbitWorker() {
 	for {
 		go rabbitConnect()
 		select {
 			case conn := <- rabbitConnChan:
-				rabbitConsumer(conn)
+				rabbitChannel(conn)
 				log.Println("Connection was reseted! Trying reconnect...")
-			case <- rabbitFailChan:
+			case <- rabbitConnectionFailChan:
 				log.Println("Can't connect to RabbitMQ! Retry after 5s")
 				time.Sleep(5*time.Second)
 		}
 	}
 }
 
-func processEventBody(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
+func processSnowplowEvent(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
 	normString, err = strconv.Unquote(`"` + string(eventBody) + `"`)
 	normString = strings.Replace(normString, "\" ", "", -1)
 	if err != nil { return }
