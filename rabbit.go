@@ -87,20 +87,6 @@ func rabbitChannel(conn *amqp.Connection) {
 	<- rabbitConsumerFailChan
 }
 
-func rabbitWorker() {
-	for {
-		go rabbitConnect()
-		select {
-			case conn := <- rabbitConnChan:
-				rabbitChannel(conn)
-				log.Println("Connection was reseted! Trying reconnect...")
-			case <- rabbitConnectionFailChan:
-				log.Println("Can't connect to RabbitMQ! Retry after 5s")
-				time.Sleep(5*time.Second)
-		}
-	}
-}
-
 func processSnowplowEvent(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
 	normString, err = strconv.Unquote(`"` + string(eventBody) + `"`)
 	normString = strings.Replace(normString, "\" ", "", -1)
