@@ -386,7 +386,7 @@ func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err e
 	return
 }
 
-func rabbitConsumer(ch *amqp.Channel, queue string, performerFunc func()) {
+func (snowplowRequestBus chan SnowplowRequestBus) Consume() {
 	q, err := ch.QueueDeclare("snowplow", true, false, false, false, nil)
 	if err != nil {
 		log.Println(err, "Failed to declare a queue")

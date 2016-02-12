@@ -9,12 +9,20 @@ import(
 )
 
 type(
+	Stats struct {
+		SuccessRing    *Ring
+		FailRing       *Ring
+		StartTime      time.Time
+		RabbitHealth   bool
+		PostgresHealth bool
+	}
+
 	Config struct {
-		Port       string
-		PgConnect  string `yaml:"pg_connect"`
-		RingSize   int    `yaml:"ring_size"`
-		RabbitAddr string `yaml:"rabbit_addr"`
-		RabbitPort string `yaml:"rabbit_port"`
+		Port       string `consul:"port"`
+		PgConnect  string `consul:"pg_connect"`
+		RingSize   int    `consul:"ring_size"`
+		RabbitAddr string `consul:"rabbit_addr"`
+		RabbitPort string `consul:"rabbit_port"`
 	}
 
 	Worker struct {
@@ -25,14 +33,22 @@ type(
 		AdjustEventBus chan *AdjustEvent
 		SnowplowEventBus chan *SnowplowEvent
 	}
+
+	Consumer interface {
+		Consume()
+	}
+
+	Transformer interface {
+		Transform()
+	}
+
+	Writer interface {
+		Write()
+	}
 )
 
 
 func (config *Config) load() error {
-	dbmap = initDb()
-
-	defer dbmap.Db.Close()
-
 	startTime = time.Now()
 
 
@@ -53,6 +69,7 @@ func (worker *Worker) generator() {
 				go rabbit.NewChannel(conn)
 				select {
 					case ch := <- rabbit.ChannelChan:
+						worker.Stats.RabbitHealth = true
 						wg := sync.WaitGroup()
 							go worker.AdjustRequestBus.Consume(ch, wg)
 							go worker.SnowplowRequestBus.Consume(ch, wg)
@@ -66,6 +83,7 @@ func (worker *Worker) generator() {
 			case <- rabbit.ConnectionFailChan:
 				log.Println("Can't connect to RabbitMQ! Retry after 5s")
 		}
+		worker.Stats.RabbitHealth = false
 		time.Sleep(5*time.Second)
 	}
 }
@@ -97,6 +115,7 @@ func (worker *Worker) capacitor() {
 		go postgres.Connect(worker.Config)
 		select {
 			case conn := <- postgres.ConnChan:
+				worker.Stats.PostgresHealth = true
 				for {
 					select {
 						case adjustEvent := <- worker.AdjustEventBus:
@@ -118,6 +137,7 @@ func (worker *Worker) capacitor() {
 			case <- postgres.ConnFailChan:
 				log.Println("Can't connect to PostgreSQL! Retry after 5s")
 		}
+		worker.Stats.PostgresHealth = false
 		time.Sleep(5*time.Second)
 	}
 }
