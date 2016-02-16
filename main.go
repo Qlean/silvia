@@ -8,16 +8,19 @@ import(
 func main() {
 	var worker *Worker
 
-	worker.Config.load()
+	err := worker.load()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	http.HandleFunc("/v1/status", statusHandler)
-	http.HandleFunc("/v1/failed", failedHandler)
 	http.HandleFunc("/v1/success", successHandler)
+	http.HandleFunc("/v1/failed", failedHandler)
 
 	go worker.generator()
 	go worker.transformer()
 	go worker.capacitor()
 
-	log.Println("Server running on port:", worker.config.Port)
-	http.ListenAndServe(":" + worker.config.Port, r)
+	log.Println("Server running on port:", worker.Config.Port)
+	http.ListenAndServe(":" + worker.Config.Port, nil)
 }

@@ -1,6 +1,8 @@
 package main
 
-import()
+import(
+	"database/sql"
+)
 
 type(
 	AdjustEvent struct {
@@ -15,8 +17,8 @@ type(
 		TrCampaign sql.NullString `db:"tracker_campaign"`
 		TrAdgroup  sql.NullString `db:"tracker_adgroup"`
 		TrCreative sql.NullString `db:"tracker_creative"`
-		Imp        impression_based	smallint
-		Org        is_organic	smallint
+		Imp        sql.NullInt64  `db:"impression_based"`
+		Org        sql.NullInt64  `db:"is_organic"`
 		Rej        sql.NullString `db:"rejection_reason"`
 		Adid       sql.NullString `db:"adjust_device_id"`
 		Idfa       sql.NullString `db:"idfa"`
@@ -26,10 +28,10 @@ type(
 		Ref        sql.NullString `db:"referrer"`
 		Ua         sql.NullString `db:"user_agent"`
 		Ip         sql.NullString `db:"ip_address"`
-		Clt        clicked_at	timestamp without time zone
-		It         installed_at	timestamp without time zone
-		Ct         event_at	timestamp without time zone
-		Rt         reattributed_at	timestamp without time zone
+		Clt        time.Time      `db:"clicked_at"`
+		It         time.Time      `db:"installed_at"`
+		Ct         time.Time      `db:"event_at"`
+		Rt         time.Time      `db:"reattributed_at"`
 		Reg        sql.NullString `db:"region"`
 		C          sql.NullString `db:"country"`
 		Lng        sql.NullString `db:"language"`
@@ -38,10 +40,10 @@ type(
 		Os         sql.NullString `db:"os_name"`
 		Osv        sql.NullString `db:"os_version"`
 		Env        sql.NullString `db:"environment"`
-		Tre        tracking_enabled	smallint
+		Tre        sql.NullInt64  `db:"tracking_enabled"`
 		Tz         sql.NullString `db:"device_timezone"`
-		Ls         last_session_sec	integer
-		Cs         current_session_sec	integer
+		Ls         sql.NullInt64  `db:"last_session_sec"`
+		Cs         sql.NullInt64  `db:"current_session_sec"`
 		Dl         sql.NullString `db:"deeplink"`
 		Pp         sql.NullString `db:"partner_parameters"`
 		FbCgn      sql.NullString `db:"fb_campaign_group_name"`

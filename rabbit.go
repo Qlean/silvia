@@ -14,8 +14,10 @@ import (
 type Rabbit struct {
 	ConnChan     chan *amqp.Connection
 	ConnFailChan chan bool
+	Channel      *amqp.Channel
 	ChanChan     chan *amqp.Channel
 	ChanFailChan chan bool
+	ConsFailChan chan bool
 }
 
 func (rabbit *Rabbit) Connect(config *Worker.Config) {
@@ -48,4 +50,25 @@ func (rabbit *Rabbit) Channel(conn *amqp.Connection) {
 	}
 
 	rabbit.ChanChan <- ch
+}
+
+func (rabbit *Rabbit) Consume(queueName string, bus chan []byte) {
+	defer rabbit.ConsFailChan <- true
+
+	q, err := ch.QueueDeclare(queueName, true, false, false, false, nil)
+	if err != nil {
+		log.Println(err, "Failed to declare a queue")
+		return
+	}
+
+	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
+	if err != nil {
+		log.Println(err, "Failed to consume messages")
+		return
+	}
+
+	for d := range msgs {
+		bus <- d.Body
+		d.Ack(true)
+	}
 }

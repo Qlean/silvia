@@ -29,7 +29,7 @@ type(
 	}
 
 	SnowplowContextsJsonField struct {
-		Schema string `json:"schema"`
+		Schema string            `json:"schema"`
 		Data   []json.RawMessage `json:"data"`
 	}
 
@@ -211,47 +211,6 @@ func (res *ScreenResolution) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func checkStringForNull(snowplowStr string, event *sql.NullString) {
-	if len(snowplowStr) == 0 {
-		event.Valid = false
-	} else {
-		event.String = snowplowStr
-		event.Valid = true
-	}
-}
-
-func checkIntForNull(snowplowInt string, event *sql.NullInt64) {
-	var err error
-
-	if snowplowInt == "" {
-		event.Valid = false
-	} else {
-		event.Int64, err = strconv.ParseInt(snowplowInt, 10, 64)
-		if err != nil {
-			event.Valid = false
-			return
-		}
-
-		event.Valid = true
-	}
-}
-
-func checkFloatForNull(snowplowFloat string, event *sql.NullFloat64) {
-	var err error
-
-	if snowplowFloat == "" {
-		event.Valid = false
-	} else {
-		event.Float64, err = strconv.ParseFloat(snowplowFloat, 64)
-		if err != nil {
-			event.Valid = false
-			return
-		}
-
-		event.Valid = true
-	}
-}
-
 func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err error) {
 
 	// Initialize object
@@ -384,38 +343,6 @@ func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err e
 	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
 
 	return
-}
-
-func (snowplowRequestBus chan SnowplowRequestBus) Consume() {
-	q, err := ch.QueueDeclare("snowplow", true, false, false, false, nil)
-	if err != nil {
-		log.Println(err, "Failed to declare a queue")
-		return
-	}
-
-	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
-	if err != nil {
-		log.Println(err, "Failed to consume messages")
-		return
-	}
-
-
-	for d := range msgs {
-		counter++
-
-		log.Println(counter, "Event accepted")
-
-		normString, nginxLog, event, err := processEventBody(d.Body)
-		if err != nil {
-			d.Ack(true)
-			failRing.Add(normString, nginxLog, event, err.Error())
-			log.Println(counter, err)
-		} else {
-			d.Ack(true)
-			successRing.Add(normString, nginxLog, event, "success")
-			log.Println(counter, "Succesfuly witten")
-		}
-	}
 }
 
 func processSnowplowEvent(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {

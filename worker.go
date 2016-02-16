@@ -1,63 +1,93 @@
 package main
 
 import(
-	"sync"
 	"time"
+	"reflect"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
 	"github.com/abh/geoip"
+
+	consul "github.com/hashicorp/consul/api"
 )
 
 type(
 	Stats struct {
-		SuccessRing    *Ring
-		FailRing       *Ring
-		StartTime      time.Time
-		RabbitHealth   bool
-		PostgresHealth bool
+		AdjustSuccessRing   *AdjustRing
+		AdjustFailRing      *AdjustRing
+		SnowplowSuccessRing *SnowplowRing
+		SnowplowFailRing    *SnowplowRing
+		StartTime           time.Time
+		RabbitHealth        bool
+		PostgresHealth      bool
 	}
 
 	Config struct {
 		Port       string `consul:"port"`
 		PgConnect  string `consul:"pg_connect"`
-		RingSize   int    `consul:"ring_size"`
+		RingSize   string `consul:"ring_size"`
 		RabbitAddr string `consul:"rabbit_addr"`
 		RabbitPort string `consul:"rabbit_port"`
 	}
 
 	Worker struct {
-		Config   *Config
-		Stats    *Stats
-		AdjustRequestBus chan *AdjustRequest
-		SnowplowRequestBus chan *SnowplowRequest
-		AdjustEventBus chan *AdjustEvent
-		SnowplowEventBus chan *SnowplowEvent
-	}
-
-	Consumer interface {
-		Consume()
-	}
-
-	Transformer interface {
-		Transform()
-	}
-
-	Writer interface {
-		Write()
+		Config             *Config
+		Stats              *Stats
+		AdjustRequestBus   chan []byte
+		SnowplowRequestBus chan []byte
+		AdjustEventBus     chan *AdjustEvent
+		SnowplowEventBus   chan *SnowplowEvent
+		GeoDB              *geoip.GeoIP
 	}
 )
 
+func (config *Config) FillFromConsul(client *consul.Client, appName string) error {
+	structType := reflect.TypeOf(*config)
+	structValue := reflect.ValueOf(config).Elem()
 
-func (config *Config) load() error {
-	startTime = time.Now()
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		consulKey := field.Tag.Get("consul")
+		pair, _, _ := kv.Get(appName + "/" + consulKey, nil)
+		if pair == nil {
+			return errors.New("Failed to fetch - " + consulKey)
+		}
+		consulValue = string(pair.Value)
+		structValue.FieldByIndex(i).SetString(consulValue)
+	}
 
+	return nil
+}
+
+
+func (worker *Worker) load() error {
+	stats := worker.Stats
+
+	stats.StartTime = time.Now()
+	stats.SuccessRing = &Ring{}
+	stats.FailRing = &Ring{}
 
 	geo, err = geoip.Open("GeoLiteCity.dat")
 	if err != nil {
-		return
+		return err
 	}
 
-	return
+	consulConfig := &consul.Config{
+		Address:    "127.0.0.1:8500",
+		Scheme:     "http",
+		HttpClient: http.DefaultClient,
+	}
+
+	client, err := consul.NewClient(consulConfig)
+	if err != nil {
+		return err
+	}
+
+	err := worker.Config.FillFromConsul(client, "silvia")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (worker *Worker) generator() {
@@ -68,15 +98,14 @@ func (worker *Worker) generator() {
 			case conn := <- rabbit.ConnChan:
 				go rabbit.NewChannel(conn)
 				select {
-					case ch := <- rabbit.ChannelChan:
+					case rabbit.Channel := <- rabbit.ChanChan:
 						worker.Stats.RabbitHealth = true
-						wg := sync.WaitGroup()
-							go worker.AdjustRequestBus.Consume(ch, wg)
-							go worker.SnowplowRequestBus.Consume(ch, wg)
-						wg.Wait()
-						ch.Close()
+						go rabbit.Consume("adjust", worker.AdjustRequestBus)
+						go rabbit.Consume("snowplow", worker.SnowplowRequestBus)
+						<- rabbit.ConsFailChan
+						rabbit.Channel.Close()
 					case <- rabbit.ChannelFailChan:
-						log.Println("Can't create RabbitMQ channel.")
+						log.Println("Can't create RabbitMQ channel")
 				}
 				conn.Close()
 				log.Println("Connection was reseted! Retry after 5s")
@@ -89,24 +118,31 @@ func (worker *Worker) generator() {
 }
 
 func (worker *Worker) transformer() {
-	for {
-		select {
-			case adjustRequest := <- worker.AdjustRequestBus:
-				adjustEvent, err := adjustRequest.Transform()
-				if err != nil {
-					adjustEvent.Fail(err)
-				}
-
+	go func() {
+		for {
+			adjustRequest := <- worker.AdjustRequestBus:
+			adjustEvent := &AdjustEvent{}
+			err := adjustEvent.Transform(adjustRequest)
+			if err != nil {
+				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
+			} else {
 				worker.AdjustEventBus <- adjustEvent
-			case snowplowRequest := <- worker.SnowplowRequestBus:
-				snowplowEvent, err := snowplowRequest.Transform()
-				if err != nil {
-					snowplowEvent.Fail(err)
-				}
-
-				worker.AdjustEventBus <- adjustEvent
+			}
 		}
-	}
+	}()
+
+	go func() {
+		for {
+			snowplowRequest := <- worker.SnowplowRequestBus:
+			snowplowEvent := &SnowplowEvent{}
+			err := snowplowEvent.Transform(snowplowRequest)
+			if err != nil {
+				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
+			} else {
+				worker.SnowplowEventBus <- snowplowEvent
+			}
+		}
+	}()
 }
 
 func (worker *Worker) capacitor() {
@@ -121,15 +157,17 @@ func (worker *Worker) capacitor() {
 						case adjustEvent := <- worker.AdjustEventBus:
 							err := adjustEvent.Write()
 							if err != nil {
-								adjustEvent.Fail(err)
+								worker.Stats.AdjustFailRing.Add(adjustEvent, err)
+							} else {
+								worker.Stats.AdjustSuccessRing.Add(adjustEvent, err)
 							}
-							adjustEvent.Success()
 						case snowplowEvent := <- worker.SnowplowEventBus:
 							err := snowplowEvent.Write()
 							if err != nil {
-								snowplowEvent.Fail(err)
+								worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
+							} else {
+								worker.Stats.SnowplowSuccessRing.Add(snowplowEvent, err)
 							}
-							snowplowEvent.Success()
 					}
 				}
 				conn.Db.Close()
@@ -141,4 +179,3 @@ func (worker *Worker) capacitor() {
 		time.Sleep(5*time.Second)
 	}
 }
-

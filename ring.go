@@ -1,23 +1,49 @@
 package main
 
-type RingItem struct {
-	Body          string
-	AdjustEvent   *AdjustEvent
-	SnowplowEvent *SnowplowEvent
-	Info          string
-}
+type(
+	AdjustRingItem struct {
+		Body  string
+		Event *AdjustEvent
+		Error error
+	}
 
-type Ring struct {
-	Ring  []*RingItem
-	Total int
-	Size  int
-}
+	AdjustRing struct {
+		Ring  []*AdjustRingItem
+		Total int
+		Size  int
+	}
 
-func (ring *Ring) AddAdjust(body string, nginxlog *NginxLog, event interface, info string) {
-	ringItem := &RingItem{
-		Body: body,
+	SnowplowRingItem struct {
+		Body  string
+		Event *SnowplowEvent
+		Error error
+	}
+
+	AdjustRing struct {
+		Ring  []*AdjustRingItem
+		Total int
+		Size  int
+	}
+)
+
+func (ring *AdjustRing) Add(event *AdjustEvent, err error) {
+	ringItem := &AdjustRingItem{
+		Body: event.Body,
 		AdjustEvent: event,
-		Info: info,
+		Error: err,
+	}
+
+	ring.Ring = append(ring.Ring, ringItem)
+	ring.Total++
+
+	if len(ring.Ring) > ring.Size { ring.Ring = ring.Ring[1:] }
+}
+
+func (ring *SnowplowRing) Add(event *SnowplowEvent, err error) {
+	ringItem := &SnowplowRingItem{
+		Body: event.Body,
+		AdjustEvent: event,
+		Error: err,
 	}
 
 	ring.Ring = append(ring.Ring, ringItem)
