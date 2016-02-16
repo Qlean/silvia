@@ -59,7 +59,7 @@ func (config *Config) FillFromConsul(client *consul.Client, appName string) erro
 }
 
 
-func (worker *Worker) load() error {
+func (worker *Worker) Load() error {
 	stats := worker.Stats
 
 	stats.StartTime = time.Now()
@@ -90,7 +90,7 @@ func (worker *Worker) load() error {
 	return nil
 }
 
-func (worker *Worker) generator() {
+func (worker *Worker) Generator() {
 	for {
 		rabbit := &Rabbit{}
 		go rabbit.Connect(worker.Config)
@@ -117,7 +117,7 @@ func (worker *Worker) generator() {
 	}
 }
 
-func (worker *Worker) transformer() {
+func (worker *Worker) Transformer() {
 	go func() {
 		for {
 			adjustRequest := <- worker.AdjustRequestBus:
@@ -145,7 +145,7 @@ func (worker *Worker) transformer() {
 	}()
 }
 
-func (worker *Worker) capacitor() {
+func (worker *Worker) Capacitor() {
 	for {
 		postgres := &Postgres{}
 		go postgres.Connect(worker.Config)
