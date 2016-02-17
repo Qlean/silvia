@@ -1,13 +1,13 @@
-package main
+package silvia
 
 import(
 	"time"
 	"strings"
 	"strconv"
-	"log"
 	"database/sql"
 	"encoding/json"
 
+	"github.com/abh/geoip"
 	"github.com/mssola/user_agent"
 )
 
@@ -34,6 +34,7 @@ type(
 	}
 
 	SnowplowEvent struct {
+		Body            []byte
 		Id              int             `db:"-"`
 		Aid             sql.NullString  `db:"app_id"`
 		Platform        sql.NullString  `db:"platform"`
@@ -211,10 +212,21 @@ func (res *ScreenResolution) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err error) {
+func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
+	event.Body = request
 
-	// Initialize object
-	event = &SnowplowEvent{}
+	normString, err := strconv.Unquote(`"` + string(request) + `"`)
+	if err != nil {
+		return err
+	}
+
+	normString = strings.Replace(normString, "\" ", "", -1)
+
+	snowplowRequest := &SnowplowRequest{}
+	err = json.Unmarshal([]byte(normString), snowplowRequest)
+	if err != nil {
+		return err
+	}
 
 	// Binding first level nginx fields
 	checkStringForNull(snowplowRequest.IPAddress, &event.UserIP)
@@ -307,7 +319,7 @@ func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err e
 		contextsField := &SnowplowContextsJsonField{}
 		err := json.Unmarshal([]byte(snowplowData.Contexts), &contextsField)
 		if err != nil {
-			log.Println("Cant Unmarshal contexts: ", err)
+			return err
 		} else {
 			rawContexts := contextsField.Data[0]
 			rawContexts = rawContexts[8:len(rawContexts)-1]
@@ -326,7 +338,7 @@ func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err e
 		contexts := &SnowplowContexts{}
 		err = json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
 		if err != nil {
-			log.Println("Cant Unmarshal contexts: ", err)
+			return err
 		} else {
 			contextsData := contexts.Data[0].Data
 			checkStringForNull(contextsData.UtmCampaign, &event.UtmCampaign)
@@ -342,22 +354,5 @@ func (snowplowRequest *SnowplowRequest) Transform() (event *SnowplowEvent, err e
 	// Bind unstructured event
 	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
 
-	return
-}
-
-func processSnowplowEvent(eventBody []byte) (normString string, nginxLog *NginxLog, event *Event, err error) {
-	normString, err = strconv.Unquote(`"` + string(eventBody) + `"`)
-	normString = strings.Replace(normString, "\" ", "", -1)
-	if err != nil { return }
-
-	nginxLog = &NginxLog{}
-	err = json.Unmarshal([]byte(normString), nginxLog)
-	if err != nil { return }
-
-	event = nginxLogToEvent(nginxLog)
-
-	err = dbmap.Insert(event)
-	if err != nil { return }
-
-	return
+	return nil
 }

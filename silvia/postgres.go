@@ -1,7 +1,7 @@
-package main
+package silvia
 
 import(
-	"log"
+	"strconv"
 	"database/sql"
 
 	"gopkg.in/gorp.v1"
@@ -9,22 +9,21 @@ import(
 )
 
 type Postgres struct {
-	ConnChan     chan *gorp.DbMap
-	ConnFailChan chan bool
+	Connection *gorp.DbMap
 }
 
-func (postgres *Postgres) Connect(config *Worker.Config) {
+func (postgres *Postgres) Connect(config *Config) error {
 	db, err := sql.Open("postgres", config.PgConnect)
 	if err != nil {
-		postgres.ConnFailChan <- true
-		return
+		return err
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 	dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events").SetKeys(true, "Id")
 	dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events").SetKeys(true, "Id")
 
-	postgres.ConnChan <- dbmap
+	postgres.Connection = dbmap
+	return nil
 }
 
 func checkStringForNull(eventStr string, event *sql.NullString) {
@@ -66,4 +65,13 @@ func checkFloatForNull(eventFloat string, event *sql.NullFloat64) {
 
 		event.Valid = true
 	}
+}
+
+func (event *SnowplowEvent) Write(dbmap *gorp.DbMap) error {
+	err := dbmap.Insert(event)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

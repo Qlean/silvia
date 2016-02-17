@@ -14,13 +14,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/v1/status", statusHandler)
-	http.HandleFunc("/v1/success", successHandler)
-	http.HandleFunc("/v1/failed", failedHandler)
+	http.HandleFunc("/v1/status", statusApi)
+	http.HandleFunc("/v1/success", successApi)
+	http.HandleFunc("/v1/failed", failedApi)
 
 	go worker.Generator()
 	go worker.Transformer()
-	go worker.Capacitor()
+	go worker.Writer()
 
 	log.Println("Server running on port:", worker.Config.Port)
 	http.ListenAndServe(":" + worker.Config.Port, nil)

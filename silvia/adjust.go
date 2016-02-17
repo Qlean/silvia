@@ -1,11 +1,14 @@
-package main
+package silvia
 
 import(
+	"time"
+	"net/url"
 	"database/sql"
 )
 
 type(
 	AdjustEvent struct {
+		Body       []byte
 		Id         int            `db:"-"`
 		Aid        sql.NullString `db:"app_id"`
 		An         sql.NullString `db:"app_name"`
@@ -59,3 +62,14 @@ type(
 		En         sql.NullString `db:"event_name"`
 	}
 )
+
+func (event *AdjustEvent) Transform(request []byte) error {
+	event.Body = request
+
+	_, err := url.ParseQuery(string(request))
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
