@@ -2,8 +2,14 @@ package silvia
 
 import(
 	"time"
+	"reflect"
 	"net/url"
+	"strconv"
+	"strings"
 	"database/sql"
+	"encoding/json"
+
+	"github.com/serenize/snaker"
 )
 
 type(
@@ -61,15 +67,72 @@ type(
 		Et         sql.NullString `db:"event_token"`
 		En         sql.NullString `db:"event_name"`
 	}
+
+	AdjustRequest struct {
+		IPAddress   string    `json:"ip_addr"`
+		TimeLocal   string    `json:"time_local"`
+		Request     string    `json:"request"`
+		Referer     string    `json:"http_referer"`
+		Useragent   string    `json:"http_user_agent"`
+	}
+
 )
 
 func (event *AdjustEvent) Transform(request []byte) error {
 	event.Body = request
 
-	_, err := url.ParseQuery(string(request))
-    if err != nil {
-        return err
-    }
+	normString, err := strconv.Unquote(`"` + string(request) + `"`)
+	if err != nil {
+		return err
+	}
+
+	normString = strings.Replace(normString, "\" ", "", -1)
+	adjustRequest := &AdjustRequest{}
+	err = json.Unmarshal([]byte(normString), adjustRequest)
+	if err == nil {
+		request = []byte(adjustRequest.Request)[4:len(adjustRequest.Request)-9]
+	}
+
+	u, err := url.Parse(string(request))
+	if err != nil {
+		return err
+	}
+
+	queryParams := u.Query()
+
+	structType := reflect.TypeOf(*event)
+	structValue := reflect.ValueOf(event).Elem()
+
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		fieldName := field.Name
+		requestParamName := snaker.CamelToSnake(fieldName)
+		requestParamValue := queryParams.Get(requestParamName)
+		fieldValue := structValue.FieldByName(field.Name)
+
+		if field.Type == reflect.TypeOf(sql.NullString{}) {
+			structNullString := reflect.Indirect(fieldValue)
+			structNullString.FieldByName("String").SetString(requestParamValue)
+			if len(requestParamValue) > 0 { structNullString.FieldByName("Valid").SetBool(true) }
+		}
+		if field.Type == reflect.TypeOf(sql.NullInt64{}) {
+			structNullString := reflect.Indirect(fieldValue)
+			int64v, err := strconv.ParseInt(requestParamValue, 10, 64)
+			if err != nil {
+				structNullString.FieldByName("Valid").SetBool(false)
+			} else {
+				structNullString.FieldByName("Int64").SetInt(int64v)
+				structNullString.FieldByName("Valid").SetBool(true)
+			}
+		}
+		if field.Type == reflect.TypeOf(time.Time{}) {
+			i, err := strconv.ParseInt(requestParamValue, 10, 64)
+			if err == nil {
+				tm := time.Unix(i, 0)
+				fieldValue.Set(reflect.ValueOf(tm))
+			}
+		}
+	}
 
     return nil
 }

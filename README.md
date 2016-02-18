@@ -25,3 +25,9 @@ You're should provide following keys in consul Key-Value storage:
 
 ## App structure
 ![Goroutines communication](images/goroutines.png)
+
+## API endpoints
+
+`/v1/status` - Application summary statistics. Returns `200` if healthy, `429` if not.
+
+`/v1/ring?tracker=TRACKER_NAME&ring=RINGNAME` - Display particular ring buffer. Parameters: tracker (`snowplow` or `adjust`), ring (`success` or `failed`)

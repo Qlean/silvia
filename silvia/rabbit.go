@@ -2,6 +2,7 @@ package silvia
 
 import (
 	"net"
+	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -44,6 +45,7 @@ func (rabbit *Rabbit) Consume(queueName string, bus chan []byte) error {
 	for d := range msgs {
 		bus <- d.Body
 		d.Ack(true)
+		time.Sleep(1 * time.Second)
 	}
 
 	return nil

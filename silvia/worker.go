@@ -3,6 +3,7 @@ package silvia
 import(
 	"log"
 	"time"
+	"strconv"
 	"reflect"
 	"net/http"
 	"github.com/abh/geoip"
@@ -62,9 +63,7 @@ func (config *Config) fillFromConsul(client *consul.Client, appName string) erro
 
 
 func (worker *Worker) Load() error {
-	stats := worker.Stats
-
-	stats.StartTime = time.Now()
+	worker.Config = &Config{}
 
 	var err error
 	worker.GeoDB, err = geoip.Open("GeoLiteCity.dat")
@@ -88,6 +87,25 @@ func (worker *Worker) Load() error {
 		return err
 	}
 
+	ringSize, err := strconv.Atoi(worker.Config.RingSize)
+	if err != nil {
+		return err
+	}
+
+	worker.Stats = &Stats{
+		AdjustSuccessRing: &AdjustRing{Size: ringSize},
+		AdjustFailRing: &AdjustRing{Size: ringSize},
+		SnowplowSuccessRing: &SnowplowRing{Size: ringSize},
+		SnowplowFailRing: &SnowplowRing{Size: ringSize},
+	}
+
+	worker.Stats.StartTime = time.Now()
+
+	worker.AdjustRequestBus = make(chan []byte)
+	worker.SnowplowRequestBus = make(chan []byte)
+	worker.AdjustEventBus = make(chan *AdjustEvent)
+	worker.SnowplowEventBus = make(chan *SnowplowEvent)
+
 	return nil
 }
 
@@ -103,6 +121,7 @@ func (worker *Worker) Generator() {
 				log.Println("Can't create RabbitMQ channel! Retry after 5s")
 			} else {
 				worker.Stats.RabbitHealth = true
+				rabbit.ConsFailChan = make(chan bool)
 				go rabbit.Consume("adjust", worker.AdjustRequestBus)
 				go rabbit.Consume("snowplow", worker.SnowplowRequestBus)
 				<- rabbit.ConsFailChan

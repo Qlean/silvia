@@ -2,7 +2,6 @@ package silvia
 
 type(
 	AdjustRingItem struct {
-		Body  string
 		Event *AdjustEvent
 		Error error
 	}
@@ -14,7 +13,6 @@ type(
 	}
 
 	SnowplowRingItem struct {
-		Body  string
 		Event *SnowplowEvent
 		Error error
 	}
@@ -28,7 +26,6 @@ type(
 
 func (ring *AdjustRing) Add(event *AdjustEvent, err error) {
 	ringItem := &AdjustRingItem{
-		Body: string(event.Body),
 		Event: event,
 		Error: err,
 	}
@@ -41,7 +38,6 @@ func (ring *AdjustRing) Add(event *AdjustEvent, err error) {
 
 func (ring *SnowplowRing) Add(event *SnowplowEvent, err error) {
 	ringItem := &SnowplowRingItem{
-		Body: string(event.Body),
 		Event: event,
 		Error: err,
 	}
