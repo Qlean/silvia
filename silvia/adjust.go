@@ -14,7 +14,7 @@ import(
 
 type(
 	AdjustEvent struct {
-		Body       []byte
+		Body       []byte         `db:"-"`
 		Id         int            `db:"-"`
 		Aid        sql.NullString `db:"app_id"`
 		An         sql.NullString `db:"app_name"`
