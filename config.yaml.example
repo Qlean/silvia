@@ -1,5 +1,0 @@
----
-
-port: 8080
-pg_connect: "postgres","dbname=snowplow host=stats.qlean.ru.node.consul user=sp_bot password=NEsnow357plow sslmode=disable"
-ring_size: 10
