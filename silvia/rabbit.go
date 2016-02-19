@@ -2,7 +2,6 @@ package silvia
 
 import (
 	"net"
-	"time"
 
 	"github.com/streadway/amqp"
 )
