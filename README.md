@@ -129,4 +129,18 @@ use_framing = false
 
 `/v1/status` - Application summary statistics. Returns `200` if healthy, `429` if not.
 
+Example output:
+
+```
+{
+  "RabbitHealth": true,
+  "PostgresHealth": true,
+  "AdjustSuccess": 0,
+  "AdjustFailed": 0,
+  "SnowplowSuccess": 9,
+  "SnowplowFailed": 0,
+  "Uptime": "47.847033138s"
+}
+```
+
 `/v1/ring?tracker=TRACKER_NAME&ring=RINGNAME` - Display particular ring buffer. Parameters: tracker (`snowplow` or `adjust`), ring (`success` or `failed`)

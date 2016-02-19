@@ -106,6 +106,29 @@ func (worker *Worker) Load() error {
 	worker.AdjustEventBus = make(chan *AdjustEvent)
 	worker.SnowplowEventBus = make(chan *SnowplowEvent)
 
+	check := &consul.AgentServiceCheck{
+		HTTP: "http://localhost:" + worker.Config.Port + "/v1/status",
+		Interval: "10s",
+		Timeout: "1s",
+	}
+
+	port, err := strconv.Atoi(worker.Config.Port)
+	if err != nil {
+		return nil
+	}
+
+	service := &consul.AgentServiceRegistration{
+		Name: "silvia",
+		Port: port,
+		Check: check,
+	}
+
+	agent := client.Agent()
+	err = agent.ServiceRegister(service)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
