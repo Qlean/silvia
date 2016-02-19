@@ -110,12 +110,16 @@ func (event *AdjustEvent) Transform(request []byte) error {
 		requestParamValue := queryParams.Get(requestParamName)
 		fieldValue := structValue.FieldByName(field.Name)
 
-		if field.Type == reflect.TypeOf(sql.NullString{}) {
+		nullStringType := reflect.TypeOf(sql.NullString{})
+		nullInt64Type := reflect.TypeOf(sql.NullInt64{})
+		timeType := reflect.TypeOf(time.Time{})
+
+		switch field.Type {
+		case nullStringType:
 			structNullString := reflect.Indirect(fieldValue)
 			structNullString.FieldByName("String").SetString(requestParamValue)
 			if len(requestParamValue) > 0 { structNullString.FieldByName("Valid").SetBool(true) }
-		}
-		if field.Type == reflect.TypeOf(sql.NullInt64{}) {
+		case nullInt64Type:
 			structNullString := reflect.Indirect(fieldValue)
 			int64v, err := strconv.ParseInt(requestParamValue, 10, 64)
 			if err != nil {
@@ -124,8 +128,7 @@ func (event *AdjustEvent) Transform(request []byte) error {
 				structNullString.FieldByName("Int64").SetInt(int64v)
 				structNullString.FieldByName("Valid").SetBool(true)
 			}
-		}
-		if field.Type == reflect.TypeOf(time.Time{}) {
+		case timeType:
 			i, err := strconv.ParseInt(requestParamValue, 10, 64)
 			if err == nil {
 				tm := time.Unix(i, 0)
