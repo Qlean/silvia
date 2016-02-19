@@ -34,7 +34,7 @@ type(
 	}
 
 	SnowplowEvent struct {
-		Body            []byte
+		Body            []byte          `db:"-"`
 		Id              int             `db:"-"`
 		Aid             sql.NullString  `db:"app_id"`
 		Platform        sql.NullString  `db:"platform"`
