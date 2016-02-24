@@ -3,7 +3,8 @@ package main
 import(
 	"log"
 	"net/http"
-	"./silvia"
+
+	"github.com/Qlean/silvia/silvia"
 )
 func main() {
 	worker := &silvia.Worker{}
