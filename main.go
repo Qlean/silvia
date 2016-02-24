@@ -18,6 +18,7 @@ func main() {
 	go worker.Generator()
 	go worker.Transformer()
 	go worker.Writer()
+	go worker.Killer()
 
 	log.Println("Server running on port:", worker.Config.Port)
 	http.ListenAndServe(":" + worker.Config.Port, nil)

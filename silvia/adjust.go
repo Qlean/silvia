@@ -7,12 +7,18 @@ import(
 	"strconv"
 	"strings"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 
 	"github.com/serenize/snaker"
 )
 
 type(
+	NullTime struct {
+		Time  time.Time
+		Valid bool
+	}
+
 	AdjustEvent struct {
 		Body       []byte         `db:"-"`
 		Id         int            `db:"-"`
@@ -37,10 +43,10 @@ type(
 		Ref        sql.NullString `db:"referrer"`
 		Ua         sql.NullString `db:"user_agent"`
 		Ip         sql.NullString `db:"ip_address"`
-		Clt        time.Time      `db:"clicked_at"`
-		It         time.Time      `db:"installed_at"`
-		Ct         time.Time      `db:"event_at"`
-		Rt         time.Time      `db:"reattributed_at"`
+		Clt        NullTime       `db:"clicked_at"`
+		It         NullTime       `db:"installed_at"`
+		Ct         NullTime       `db:"event_at"`
+		Rt         NullTime       `db:"reattributed_at"`
 		Reg        sql.NullString `db:"region"`
 		C          sql.NullString `db:"country"`
 		Lng        sql.NullString `db:"language"`
@@ -78,6 +84,18 @@ type(
 
 )
 
+func (nt *NullTime) Scan(value interface{}) error {
+	nt.Time, nt.Valid = value.(time.Time)
+	return nil
+}
+
+func (nt NullTime) Value() (driver.Value, error) {
+	if !nt.Valid {
+		return nil, nil
+	}
+	return nt.Time, nil
+}
+
 func (event *AdjustEvent) Transform(request []byte) error {
 	event.Body = request
 
@@ -103,6 +121,10 @@ func (event *AdjustEvent) Transform(request []byte) error {
 	structType := reflect.TypeOf(*event)
 	structValue := reflect.ValueOf(event).Elem()
 
+	nullStringType := reflect.TypeOf(sql.NullString{})
+	nullInt64Type := reflect.TypeOf(sql.NullInt64{})
+	NullTimeType := reflect.TypeOf(NullTime{})
+
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		fieldName := field.Name
@@ -110,29 +132,31 @@ func (event *AdjustEvent) Transform(request []byte) error {
 		requestParamValue := queryParams.Get(requestParamName)
 		fieldValue := structValue.FieldByName(field.Name)
 
-		nullStringType := reflect.TypeOf(sql.NullString{})
-		nullInt64Type := reflect.TypeOf(sql.NullInt64{})
-		timeType := reflect.TypeOf(time.Time{})
-
 		switch field.Type {
 		case nullStringType:
 			structNullString := reflect.Indirect(fieldValue)
-			structNullString.FieldByName("String").SetString(requestParamValue)
-			if len(requestParamValue) > 0 { structNullString.FieldByName("Valid").SetBool(true) }
-		case nullInt64Type:
-			structNullString := reflect.Indirect(fieldValue)
-			int64v, err := strconv.ParseInt(requestParamValue, 10, 64)
-			if err != nil {
-				structNullString.FieldByName("Valid").SetBool(false)
-			} else {
-				structNullString.FieldByName("Int64").SetInt(int64v)
+			if len(requestParamValue) > 0 {
+				structNullString.FieldByName("String").SetString(requestParamValue)
 				structNullString.FieldByName("Valid").SetBool(true)
 			}
-		case timeType:
+		case nullInt64Type:
+			structNullInt64 := reflect.Indirect(fieldValue)
+			int64v, err := strconv.ParseInt(requestParamValue, 10, 64)
+			if err != nil {
+				structNullInt64.FieldByName("Valid").SetBool(false)
+			} else {
+				structNullInt64.FieldByName("Int64").SetInt(int64v)
+				structNullInt64.FieldByName("Valid").SetBool(true)
+			}
+		case NullTimeType:
+			structNullTime := reflect.Indirect(fieldValue)
 			i, err := strconv.ParseInt(requestParamValue, 10, 64)
-			if err == nil {
+			if err != nil {
+				structNullTime.FieldByName("Valid").SetBool(false)
+			} else {
 				tm := time.Unix(i, 0)
-				fieldValue.Set(reflect.ValueOf(tm))
+				structNullTime.FieldByName("Time").Set(reflect.ValueOf(tm))
+				structNullTime.FieldByName("Valid").SetBool(true)
 			}
 		}
 	}

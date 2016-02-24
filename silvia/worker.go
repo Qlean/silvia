@@ -1,14 +1,17 @@
 package silvia
 
 import(
+	"os"
 	"log"
 	"time"
 	"strconv"
 	"reflect"
 	"net/http"
+	"os/signal"
 	"github.com/abh/geoip"
 
 	consul "github.com/hashicorp/consul/api"
+	"github.com/satori/go.uuid"
 )
 
 type(
@@ -38,6 +41,8 @@ type(
 		AdjustEventBus     chan *AdjustEvent
 		SnowplowEventBus   chan *SnowplowEvent
 		GeoDB              *geoip.GeoIP
+		ConsulAgent        *consul.Agent
+		ConsulServiceID    string
 	}
 )
 
@@ -117,14 +122,17 @@ func (worker *Worker) Load() error {
 		return nil
 	}
 
+	worker.ConsulServiceID = uuid.NewV4().String()
+
 	service := &consul.AgentServiceRegistration{
+		ID: worker.ConsulServiceID,
 		Name: "silvia",
 		Port: port,
 		Check: check,
 	}
 
-	agent := client.Agent()
-	err = agent.ServiceRegister(service)
+	worker.ConsulAgent = client.Agent()
+	err = worker.ConsulAgent.ServiceRegister(service)
 	if err != nil {
 		return err
 	}
@@ -216,4 +224,12 @@ func (worker *Worker) Writer() {
 		worker.Stats.PostgresHealth = false
 		time.Sleep(5*time.Second)
 	}
+}
+
+func (worker *Worker) Killer() {
+	signalCh := make(chan os.Signal, 4)
+	signal.Notify(signalCh, os.Interrupt)
+	<-signalCh
+	worker.ConsulAgent.ServiceDeregister(worker.ConsulServiceID)
+	os.Exit(0)
 }
