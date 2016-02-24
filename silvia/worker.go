@@ -4,6 +4,7 @@ import(
 	"os"
 	"log"
 	"time"
+	"syscall"
 	"strconv"
 	"reflect"
 	"net/http"
@@ -228,7 +229,7 @@ func (worker *Worker) Writer() {
 
 func (worker *Worker) Killer() {
 	signalCh := make(chan os.Signal, 4)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 	<-signalCh
 	worker.ConsulAgent.ServiceDeregister(worker.ConsulServiceID)
 	os.Exit(0)
