@@ -4,6 +4,7 @@ import(
 	"os"
 	"log"
 	"time"
+	"sync"
 	"syscall"
 	"strconv"
 	"reflect"
@@ -16,14 +17,19 @@ import(
 )
 
 type(
+	Health struct {
+		sync.RWMutex
+		Health bool
+	}
+
 	Stats struct {
 		AdjustSuccessRing   *AdjustRing
 		AdjustFailRing      *AdjustRing
 		SnowplowSuccessRing *SnowplowRing
 		SnowplowFailRing    *SnowplowRing
 		StartTime           time.Time
-		RabbitHealth        bool
-		PostgresHealth      bool
+		RabbitHealth        Health
+		PostgresHealth      Health
 	}
 
 	Config struct {
@@ -46,6 +52,18 @@ type(
 		ConsulServiceID    string
 	}
 )
+
+func (health *Health) Set(value bool) {
+	health.Lock()
+	health.Health = value
+	health.Unlock()
+}
+
+func (health *Health) Get() bool {
+	health.RLock()
+	defer health.RUnlock()
+	return health.Health
+}
 
 func (config *Config) fillFromConsul(client *consul.Client, appName string) error {
 	kv := client.KV()
@@ -138,6 +156,8 @@ func (worker *Worker) Load() error {
 		return err
 	}
 
+	log.Println("Service registred with ID:", worker.ConsulServiceID)
+
 	return nil
 }
 
@@ -152,7 +172,7 @@ func (worker *Worker) Generator() {
 			if err != nil {
 				log.Println("Can't create RabbitMQ channel! Retry after 5s")
 			} else {
-				worker.Stats.RabbitHealth = true
+				worker.Stats.RabbitHealth.Set(true)
 				rabbit.ConsFailChan = make(chan bool)
 				go rabbit.Consume("adjust", worker.AdjustRequestBus)
 				go rabbit.Consume("snowplow", worker.SnowplowRequestBus)
@@ -162,7 +182,7 @@ func (worker *Worker) Generator() {
 			rabbit.Connection.Close()
 		}
 
-		worker.Stats.RabbitHealth = false
+		worker.Stats.RabbitHealth.Set(false)
 		time.Sleep(5*time.Second)
 	}
 }
@@ -194,37 +214,42 @@ func (worker *Worker) Transformer() {
 }
 
 func (worker *Worker) Writer() {
-	for {
-		postgres := &Postgres{}
-		err := postgres.Connect(worker.Config)
-		if err != nil {
-			log.Println("Can't connect to PostgreSQL! Retry after 5s")
-		} else {
-			worker.Stats.PostgresHealth = true
+	postgres := &Postgres{}
+	err := postgres.Connect(worker.Config)
+	if err != nil {
+		log.Println("Can't connect to PostgreSQL! Retry after 5s")
+	} else {
+		worker.Stats.PostgresHealth.Set(true)
+		go func() {
+			defer postgres.Connection.Db.Close()
 			for {
-				select {
-				case adjustEvent := <- worker.AdjustEventBus:
-					err := postgres.Connection.Insert(adjustEvent)
-					if err != nil {
-						worker.Stats.AdjustFailRing.Add(adjustEvent, err)
-					} else {
-						worker.Stats.AdjustSuccessRing.Add(adjustEvent, err)
-					}
-				case snowplowEvent := <- worker.SnowplowEventBus:
-					err := postgres.Connection.Insert(snowplowEvent)
-					if err != nil {
-						worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
-					} else {
-						worker.Stats.SnowplowSuccessRing.Add(snowplowEvent, err)
-					}
+				adjustEvent := <- worker.AdjustEventBus
+				err := postgres.Connection.Insert(adjustEvent)
+				if err != nil {
+					worker.Stats.AdjustFailRing.Add(adjustEvent, err)
+				} else {
+					worker.Stats.AdjustSuccessRing.Add(adjustEvent, err)
 				}
 			}
-			postgres.Connection.Db.Close()
-		}
+		}()
 
-		worker.Stats.PostgresHealth = false
-		time.Sleep(5*time.Second)
+		go func() {
+			defer postgres.Connection.Db.Close()
+			for {
+				snowplowEvent := <- worker.SnowplowEventBus
+				err := postgres.Connection.Insert(snowplowEvent)
+				if err != nil {
+					worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
+				} else {
+					worker.Stats.SnowplowSuccessRing.Add(snowplowEvent, err)
+				}
+			}
+		}()
 	}
+
+	// worker.Stats.PostgresHealth.Set(false)
+	time.Sleep(5*time.Second)
+
 }
 
 func (worker *Worker) Killer() {

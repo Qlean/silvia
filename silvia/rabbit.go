@@ -29,7 +29,9 @@ func (rabbit *Rabbit) Connect(config *Config) error {
 }
 
 func (rabbit *Rabbit) Consume(queueName string, bus chan []byte) error {
-	defer func() { rabbit.ConsFailChan <- true }()
+	defer func() {
+		rabbit.ConsFailChan <- true
+	}()
 
 	q, err := rabbit.Channel.QueueDeclare(queueName, true, false, false, false, nil)
 	if err != nil {
@@ -42,8 +44,12 @@ func (rabbit *Rabbit) Consume(queueName string, bus chan []byte) error {
 	}
 
 	for d := range msgs {
+		err := d.Ack(false)
+		if err != nil {
+			return err
+		}
+
 		bus <- d.Body
-		d.Ack(true)
 	}
 
 	return nil

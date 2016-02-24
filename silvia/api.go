@@ -29,13 +29,19 @@ func StatusApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 	rndr := render.New()
 
 	stats := worker.Stats
+
+	adjustSuccessRing := stats.AdjustSuccessRing.Display()
+	adjustFailRing := stats.AdjustFailRing.Display()
+	snowplowSuccessRing := stats.SnowplowSuccessRing.Display()
+	snowplowFailRing := stats.SnowplowFailRing.Display()
+
 	status := Status{
-		RabbitHealth:    stats.RabbitHealth,
-		PostgresHealth:  stats.PostgresHealth,
-		AdjustSuccess:   stats.AdjustSuccessRing.Total,
-		AdjustFailed:    stats.AdjustFailRing.Total,
-		SnowplowSuccess: stats.SnowplowSuccessRing.Total,
-		SnowplowFailed:  stats.SnowplowFailRing.Total,
+		RabbitHealth:    stats.RabbitHealth.Get(),
+		PostgresHealth:  stats.PostgresHealth.Get(),
+		AdjustSuccess:   adjustSuccessRing.Total,
+		AdjustFailed:    adjustFailRing.Total,
+		SnowplowSuccess: snowplowSuccessRing.Total,
+		SnowplowFailed:  snowplowFailRing.Total,
 		Uptime:          time.Since(stats.StartTime).String(),
 	}
 
@@ -60,16 +66,16 @@ func RingApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 	case "snowplow":
 		switch queryParams.Get("ring") {
 		case "success":
-			ring = worker.Stats.SnowplowSuccessRing
+			ring = worker.Stats.SnowplowSuccessRing.Display()
 		case "failed":
-			ring = worker.Stats.SnowplowFailRing
+			ring = worker.Stats.SnowplowFailRing.Display()
 		}
 	case "adjust":
 		switch queryParams.Get("ring") {
 			case "success":
-				ring = worker.Stats.AdjustSuccessRing
+				ring = worker.Stats.AdjustSuccessRing.Display()
 			case "failed":
-				ring = worker.Stats.AdjustFailRing
+				ring = worker.Stats.AdjustFailRing.Display()
 		}
 	}
 
