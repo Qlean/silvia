@@ -130,12 +130,6 @@ func (worker *Worker) Load() error {
 	worker.AdjustEventBus = make(chan *AdjustEvent)
 	worker.SnowplowEventBus = make(chan *SnowplowEvent)
 
-	check := &consul.AgentServiceCheck{
-		HTTP: "http://localhost:" + worker.Config.Port + "/v1/status",
-		Interval: "10s",
-		Timeout: "1s",
-	}
-
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
 		return nil
@@ -143,11 +137,22 @@ func (worker *Worker) Load() error {
 
 	worker.ConsulServiceID = uuid.NewV4().String()
 
+	checks := consul.AgentServiceChecks{
+		&consul.AgentServiceCheck{
+			TTL: "10s",
+		},
+		&consul.AgentServiceCheck{
+			HTTP: "http://localhost:" + worker.Config.Port + "/v1/status",
+			Interval: "10s",
+			Timeout: "1s",
+		},
+	}
+
 	service := &consul.AgentServiceRegistration{
 		ID: worker.ConsulServiceID,
 		Name: "silvia",
 		Port: port,
-		Check: check,
+		Checks: checks,
 	}
 
 	worker.ConsulAgent = client.Agent()
@@ -155,6 +160,16 @@ func (worker *Worker) Load() error {
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		for {
+			<- time.After(8 * time.Second)
+			err = worker.ConsulAgent.PassTTL("service:" + worker.ConsulServiceID + ":1", "Internal TTL ping")
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}()
 
 	log.Println("Service registred with ID:", worker.ConsulServiceID)
 

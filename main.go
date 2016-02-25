@@ -4,7 +4,7 @@ import(
 	"log"
 	"net/http"
 
-	"github.com/Qlean/silvia/silvia"
+	"./silvia"
 )
 func main() {
 	worker := &silvia.Worker{}
