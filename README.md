@@ -22,7 +22,7 @@ You're should provide following keys in consul Key-Value storage:
 - `silvia/pg_connect` - PostgreSQL connection configuration (e.g. `dbname=analytics host=postgres user=postgres password=secretpass`)
 - `silvia/port` - API port binding
 - `silvia/rabbit_addr` - RabbitMQ address
-- `silvia/rabbit_addr` - RabbitMQ port
+- `silvia/rabbit_port` - RabbitMQ port
 - `silvia/ring_size` - Ring buffers size (e.g. `10`)
 
 ### Nginx
@@ -32,7 +32,7 @@ log_format snowplow "{\x22ip_addr\x22:\x22$remote_addr\x22,\x22time_local\x22:\x
 log_format adjust "$request_uri";
 
 server {
-	listen 80
+	listen 80;
 
 	location /empty_proxy {
 		access_log off;
