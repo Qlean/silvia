@@ -231,7 +231,7 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 	// Binding first level nginx fields
 	checkStringForNull(snowplowRequest.IPAddress, &event.UserIP)
 	event.CollectorTstamp = time.Now()
-	checkStringForNull(snowplowRequest.Referer, &event.PageReferrer)
+	// checkStringForNull(snowplowRequest.Referer, &event.PageReferrer)
 	checkStringForNull(snowplowRequest.Useragent, &event.Useragent)
 
 	// Binding snowplow data
