@@ -10,7 +10,8 @@ WORKDIR /app
 COPY . /app/
 ENV GOPATH /go/
 RUN go get -d -v
+RUN curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > GeoLiteCity.dat
+RUN cd /app/silvia && go test
 RUN go build
-EXPOSE 8080
 
 CMD ["./app"]
