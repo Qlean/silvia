@@ -1,10 +1,10 @@
 package silvia
 
-import(
-	"time"
-	"net/url"
-	"net/http"
+import (
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/unrolled/render"
 )
@@ -53,7 +53,9 @@ func StatusApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 
 	httpStatus := http.StatusOK
 
-	if !status.RabbitHealth || !status.PostgresHealth { httpStatus = http.StatusTooManyRequests }
+	if !status.RabbitHealth || !status.PostgresHealth {
+		httpStatus = http.StatusTooManyRequests
+	}
 
 	rndr.Text(w, httpStatus, string(b))
 }
@@ -72,10 +74,10 @@ func RingApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 		}
 	case "adjust":
 		switch queryParams.Get("ring") {
-			case "success":
-				ring = worker.Stats.AdjustSuccessRing.Display()
-			case "failed":
-				ring = worker.Stats.AdjustFailRing.Display()
+		case "success":
+			ring = worker.Stats.AdjustSuccessRing.Display()
+		case "failed":
+			ring = worker.Stats.AdjustFailRing.Display()
 		}
 	}
 

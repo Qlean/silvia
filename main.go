@@ -1,11 +1,12 @@
 package main
 
-import(
+import (
 	"log"
 	"net/http"
 
-	"./silvia"
+	"github.com/Qlean/silvia/silvia"
 )
+
 func main() {
 	worker := &silvia.Worker{}
 	err := worker.Load()
@@ -22,5 +23,5 @@ func main() {
 	go worker.Killer()
 
 	log.Println("Server running on port:", worker.Config.Port)
-	http.ListenAndServe(":" + worker.Config.Port, nil)
+	http.ListenAndServe(":"+worker.Config.Port, nil)
 }

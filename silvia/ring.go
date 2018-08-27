@@ -2,7 +2,7 @@ package silvia
 
 import "sync"
 
-type(
+type (
 	AdjustRingItem struct {
 		Event *AdjustEvent
 		Error error
@@ -38,7 +38,9 @@ func (ring *AdjustRing) Add(event *AdjustEvent, err error) {
 	ring.Ring = append(ring.Ring, ringItem)
 	ring.Total++
 
-	if len(ring.Ring) > ring.Size { ring.Ring = ring.Ring[1:] }
+	if len(ring.Ring) > ring.Size {
+		ring.Ring = ring.Ring[1:]
+	}
 	ring.Unlock()
 }
 
@@ -52,7 +54,9 @@ func (ring *SnowplowRing) Add(event *SnowplowEvent, err error) {
 	ring.Ring = append(ring.Ring, ringItem)
 	ring.Total++
 
-	if len(ring.Ring) > ring.Size { ring.Ring = ring.Ring[1:] }
+	if len(ring.Ring) > ring.Size {
+		ring.Ring = ring.Ring[1:]
+	}
 	ring.Unlock()
 }
 

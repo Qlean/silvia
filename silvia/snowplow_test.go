@@ -3,10 +3,11 @@ package silvia
 import (
 	"database/sql"
 	"fmt"
-	"github.com/abh/geoip"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/abh/geoip"
 )
 
 var snowplowStrings = []string{}

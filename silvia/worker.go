@@ -1,22 +1,23 @@
 package silvia
 
-import(
-	"os"
+import (
 	"log"
-	"time"
+	"net/http"
+	"os"
+	"os/signal"
+	"reflect"
+	"strconv"
 	"sync"
 	"syscall"
-	"strconv"
-	"reflect"
-	"net/http"
-	"os/signal"
+	"time"
+
 	"github.com/abh/geoip"
 
 	consul "github.com/hashicorp/consul/api"
 	"github.com/satori/go.uuid"
 )
 
-type(
+type (
 	Health struct {
 		sync.RWMutex
 		Health bool
@@ -74,7 +75,7 @@ func (config *Config) fillFromConsul(client *consul.Client, appName string) erro
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		consulKey := field.Tag.Get("consul")
-		pair, _, err := kv.Get(appName + "/" + consulKey, nil)
+		pair, _, err := kv.Get(appName+"/"+consulKey, nil)
 		if pair == nil {
 			return err
 		}
@@ -84,7 +85,6 @@ func (config *Config) fillFromConsul(client *consul.Client, appName string) erro
 
 	return nil
 }
-
 
 func (worker *Worker) Load() error {
 	worker.Config = &Config{}
@@ -117,10 +117,10 @@ func (worker *Worker) Load() error {
 	}
 
 	worker.Stats = &Stats{
-		AdjustSuccessRing: &AdjustRing{Size: ringSize},
-		AdjustFailRing: &AdjustRing{Size: ringSize},
+		AdjustSuccessRing:   &AdjustRing{Size: ringSize},
+		AdjustFailRing:      &AdjustRing{Size: ringSize},
 		SnowplowSuccessRing: &SnowplowRing{Size: ringSize},
-		SnowplowFailRing: &SnowplowRing{Size: ringSize},
+		SnowplowFailRing:    &SnowplowRing{Size: ringSize},
 	}
 
 	worker.Stats.StartTime = time.Now()
@@ -142,16 +142,16 @@ func (worker *Worker) Load() error {
 			TTL: "10s",
 		},
 		&consul.AgentServiceCheck{
-			HTTP: "http://localhost:" + worker.Config.Port + "/v1/status",
+			HTTP:     "http://localhost:" + worker.Config.Port + "/v1/status",
 			Interval: "10s",
-			Timeout: "1s",
+			Timeout:  "1s",
 		},
 	}
 
 	service := &consul.AgentServiceRegistration{
-		ID: worker.ConsulServiceID,
-		Name: "silvia",
-		Port: port,
+		ID:     worker.ConsulServiceID,
+		Name:   "silvia",
+		Port:   port,
 		Checks: checks,
 	}
 
@@ -163,8 +163,8 @@ func (worker *Worker) Load() error {
 
 	go func() {
 		for {
-			<- time.After(8 * time.Second)
-			err = worker.ConsulAgent.PassTTL("service:" + worker.ConsulServiceID + ":1", "Internal TTL ping")
+			<-time.After(8 * time.Second)
+			err = worker.ConsulAgent.PassTTL("service:"+worker.ConsulServiceID+":1", "Internal TTL ping")
 			if err != nil {
 				log.Println(err)
 			}
@@ -191,14 +191,14 @@ func (worker *Worker) Generator() {
 				rabbit.ConsFailChan = make(chan bool)
 				go rabbit.Consume("adjust", worker.AdjustRequestBus)
 				go rabbit.Consume("snowplow", worker.SnowplowRequestBus)
-				<- rabbit.ConsFailChan
+				<-rabbit.ConsFailChan
 				rabbit.Channel.Close()
 			}
 			rabbit.Connection.Close()
 		}
 
 		worker.Stats.RabbitHealth.Set(false)
-		time.Sleep(5*time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -206,7 +206,7 @@ func (worker *Worker) Transformer() {
 	go func() {
 		for {
 			adjustEvent := &AdjustEvent{}
-			err := adjustEvent.Transform(<- worker.AdjustRequestBus)
+			err := adjustEvent.Transform(<-worker.AdjustRequestBus)
 			if err != nil {
 				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
 			} else {
@@ -218,7 +218,7 @@ func (worker *Worker) Transformer() {
 	go func() {
 		for {
 			snowplowEvent := &SnowplowEvent{}
-			err := snowplowEvent.Transform(<- worker.SnowplowRequestBus, worker.GeoDB)
+			err := snowplowEvent.Transform(<-worker.SnowplowRequestBus, worker.GeoDB)
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
@@ -238,7 +238,7 @@ func (worker *Worker) Writer() {
 		go func() {
 			defer postgres.Connection.Db.Close()
 			for {
-				adjustEvent := <- worker.AdjustEventBus
+				adjustEvent := <-worker.AdjustEventBus
 				err := postgres.Connection.Insert(adjustEvent)
 				if err != nil {
 					worker.Stats.AdjustFailRing.Add(adjustEvent, err)
@@ -251,7 +251,7 @@ func (worker *Worker) Writer() {
 		go func() {
 			defer postgres.Connection.Db.Close()
 			for {
-				snowplowEvent := <- worker.SnowplowEventBus
+				snowplowEvent := <-worker.SnowplowEventBus
 				err := postgres.Connection.Insert(snowplowEvent)
 				if err != nil {
 					worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
@@ -263,7 +263,7 @@ func (worker *Worker) Writer() {
 	}
 
 	// worker.Stats.PostgresHealth.Set(false)
-	time.Sleep(5*time.Second)
+	time.Sleep(5 * time.Second)
 
 }
 

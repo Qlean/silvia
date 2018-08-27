@@ -1,11 +1,11 @@
 package silvia
 
-import(
-	"strconv"
+import (
 	"database/sql"
+	"strconv"
 
-	"gopkg.in/gorp.v1"
 	_ "github.com/lib/pq"
+	"gopkg.in/gorp.v1"
 )
 
 type Postgres struct {
