@@ -12,6 +12,7 @@ import (
 type Status struct {
 	RabbitHealth    bool
 	PostgresHealth  bool
+	RedshiftHealth  bool
 	AdjustSuccess   int
 	AdjustFailed    int
 	SnowplowSuccess int
@@ -38,6 +39,7 @@ func StatusApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 	status := Status{
 		RabbitHealth:    stats.RabbitHealth.Get(),
 		PostgresHealth:  stats.PostgresHealth.Get(),
+		RedshiftHealth:  stats.PostgresHealth.Get(),
 		AdjustSuccess:   adjustSuccessRing.Total,
 		AdjustFailed:    adjustFailRing.Total,
 		SnowplowSuccess: snowplowSuccessRing.Total,
@@ -61,32 +63,33 @@ func StatusApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 }
 
 func RingApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
-	var ring interface{}
+	var ring []interface{}
 	u, _ := url.Parse(r.URL.String())
 	queryParams := u.Query()
 	switch queryParams.Get("tracker") {
 	case "snowplow":
 		switch queryParams.Get("ring") {
 		case "success":
-			ring = worker.Stats.SnowplowSuccessRing.Display()
+			ring = append(ring, worker.Stats.SnowplowSuccessRing.Display(), worker.Stats.PostgresSnowplowSuccessRing.Display(), worker.Stats.RedshiftSnowplowSuccessRing.Display())
 		case "failed":
-			ring = worker.Stats.SnowplowFailRing.Display()
+			ring = append(ring, worker.Stats.SnowplowFailRing.Display(), worker.Stats.PostgresSnowplowFailRing.Display(), worker.Stats.RedshiftSnowplowFailRing.Display())
 		}
+
 	case "adjust":
 		switch queryParams.Get("ring") {
 		case "success":
-			ring = worker.Stats.AdjustSuccessRing.Display()
+			ring = append(ring, worker.Stats.AdjustSuccessRing.Display(), worker.Stats.PostgresAdjustSuccessRing.Display(), worker.Stats.RedshiftAdjustSuccessRing.Display())
 		case "failed":
-			ring = worker.Stats.AdjustFailRing.Display()
+			ring = append(ring, worker.Stats.AdjustFailRing.Display(), worker.Stats.PostgresAdjustFailRing.Display(), worker.Stats.RedshiftAdjustFailRing.Display())
 		}
 	}
 
 	rndr := render.New()
 	b, err := json.MarshalIndent(ring, "", "  ")
+
 	if err != nil {
 		rndr.Text(w, http.StatusBadRequest, "Cant draw pretty JSON")
 		return
 	}
-
 	rndr.Text(w, http.StatusOK, string(b))
 }

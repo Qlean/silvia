@@ -28,29 +28,46 @@ type (
 		AdjustFailRing      *AdjustRing
 		SnowplowSuccessRing *SnowplowRing
 		SnowplowFailRing    *SnowplowRing
-		StartTime           time.Time
-		RabbitHealth        Health
-		PostgresHealth      Health
+
+		RedshiftAdjustSuccessRing   *AdjustRing
+		RedshiftAdjustFailRing      *AdjustRing
+		RedshiftSnowplowSuccessRing *SnowplowRing
+		RedshiftSnowplowFailRing    *SnowplowRing
+
+		PostgresAdjustSuccessRing   *AdjustRing
+		PostgresAdjustFailRing      *AdjustRing
+		PostgresSnowplowSuccessRing *SnowplowRing
+		PostgresSnowplowFailRing    *SnowplowRing
+
+		StartTime      time.Time
+		RabbitHealth   Health
+		PostgresHealth Health
+		RedshiftHealth Health
 	}
 
 	Config struct {
-		Port       string `consul:"port"`
-		PgConnect  string `consul:"pg_connect"`
-		RingSize   string `consul:"ring_size"`
-		RabbitAddr string `consul:"rabbit_addr"`
-		RabbitPort string `consul:"rabbit_port"`
+		PostgresEnabled bool   `consul:"Postgres_enabled"`
+		RedshiftEnabled bool   `consul:"redshift_enabled"`
+		Port            string `consul:"port"`
+		PostgresConnect string `consul:"Postgres_connect"`
+		RedshiftConnect string `consul:"redshift_connect"`
+		RingSize        string `consul:"ring_size"`
+		RabbitAddr      string `consul:"rabbit_addr"`
+		RabbitPort      string `consul:"rabbit_port"`
 	}
 
 	Worker struct {
-		Config             *Config
-		Stats              *Stats
-		AdjustRequestBus   chan []byte
-		SnowplowRequestBus chan []byte
-		AdjustEventBus     chan *AdjustEvent
-		SnowplowEventBus   chan *SnowplowEvent
-		GeoDB              *geoip.GeoIP
-		ConsulAgent        *consul.Agent
-		ConsulServiceID    string
+		Config                   *Config
+		Stats                    *Stats
+		AdjustRequestBus         chan []byte
+		SnowplowRequestBus       chan []byte
+		PostgresAdjustEventBus   chan *AdjustEvent
+		PostgresSnowplowEventBus chan *SnowplowEvent
+		RedshiftAdjustEventBus   chan *AdjustEvent
+		RedshiftSnowplowEventBus chan *SnowplowEvent
+		GeoDB                    *geoip.GeoIP
+		ConsulAgent              *consul.Agent
+		ConsulServiceID          string
 	}
 )
 
@@ -121,14 +138,26 @@ func (worker *Worker) Load() error {
 		AdjustFailRing:      &AdjustRing{Size: ringSize},
 		SnowplowSuccessRing: &SnowplowRing{Size: ringSize},
 		SnowplowFailRing:    &SnowplowRing{Size: ringSize},
+
+		RedshiftAdjustSuccessRing:   &AdjustRing{Size: ringSize},
+		RedshiftAdjustFailRing:      &AdjustRing{Size: ringSize},
+		RedshiftSnowplowSuccessRing: &SnowplowRing{Size: ringSize},
+		RedshiftSnowplowFailRing:    &SnowplowRing{Size: ringSize},
+
+		PostgresAdjustSuccessRing:   &AdjustRing{Size: ringSize},
+		PostgresAdjustFailRing:      &AdjustRing{Size: ringSize},
+		PostgresSnowplowSuccessRing: &SnowplowRing{Size: ringSize},
+		PostgresSnowplowFailRing:    &SnowplowRing{Size: ringSize},
 	}
 
 	worker.Stats.StartTime = time.Now()
 
 	worker.AdjustRequestBus = make(chan []byte)
 	worker.SnowplowRequestBus = make(chan []byte)
-	worker.AdjustEventBus = make(chan *AdjustEvent)
-	worker.SnowplowEventBus = make(chan *SnowplowEvent)
+	worker.PostgresAdjustEventBus = make(chan *AdjustEvent)
+	worker.PostgresSnowplowEventBus = make(chan *SnowplowEvent)
+	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent)
+	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent)
 
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
@@ -210,7 +239,12 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
 			} else {
-				worker.AdjustEventBus <- adjustEvent
+				if worker.Stats.PostgresHealth.Get() {
+					worker.PostgresAdjustEventBus <- adjustEvent
+				}
+				if worker.Stats.RedshiftHealth.Get() {
+					worker.RedshiftAdjustEventBus <- adjustEvent
+				}
 			}
 		}
 	}()
@@ -222,7 +256,8 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
-				worker.SnowplowEventBus <- snowplowEvent
+				worker.PostgresSnowplowEventBus <- snowplowEvent
+				worker.RedshiftSnowplowEventBus <- snowplowEvent
 			}
 		}
 	}()
@@ -230,41 +265,81 @@ func (worker *Worker) Transformer() {
 
 func (worker *Worker) Writer() {
 	postgres := &Postgres{}
-	err := postgres.Connect(worker.Config)
-	if err != nil {
-		log.Println("Can't connect to PostgreSQL! Retry after 5s")
-	} else {
-		worker.Stats.PostgresHealth.Set(true)
-		go func() {
-			defer postgres.Connection.Db.Close()
-			for {
-				adjustEvent := <-worker.AdjustEventBus
-				err := postgres.Connection.Insert(adjustEvent)
-				if err != nil {
-					worker.Stats.AdjustFailRing.Add(adjustEvent, err)
-				} else {
-					worker.Stats.AdjustSuccessRing.Add(adjustEvent, err)
-				}
-			}
-		}()
+	redshift := &Postgres{}
 
-		go func() {
-			defer postgres.Connection.Db.Close()
-			for {
-				snowplowEvent := <-worker.SnowplowEventBus
-				err := postgres.Connection.Insert(snowplowEvent)
-				if err != nil {
-					worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
-				} else {
-					worker.Stats.SnowplowSuccessRing.Add(snowplowEvent, err)
+	if worker.Config.PostgresEnabled {
+
+		err := postgres.Connect(worker.Config)
+		if err != nil {
+			log.Println("Can't connect to PostgreSQL! Retry after 5s")
+		} else {
+			worker.Stats.PostgresHealth.Set(true)
+			go func() {
+				defer postgres.Connection.Db.Close()
+				for {
+					adjustEvent := <-worker.PostgresAdjustEventBus
+					err := postgres.Connection.Insert(adjustEvent)
+					if err != nil {
+						worker.Stats.PostgresAdjustFailRing.Add(adjustEvent, err)
+					} else {
+						worker.Stats.PostgresAdjustSuccessRing.Add(adjustEvent, err)
+					}
 				}
-			}
-		}()
+			}()
+
+			go func() {
+				defer postgres.Connection.Db.Close()
+				for {
+					snowplowEvent := <-worker.PostgresSnowplowEventBus
+					err := postgres.Connection.Insert(snowplowEvent)
+					if err != nil {
+						worker.Stats.PostgresSnowplowFailRing.Add(snowplowEvent, err)
+					} else {
+						worker.Stats.PostgresSnowplowSuccessRing.Add(snowplowEvent, err)
+					}
+				}
+			}()
+		}
+	}
+
+	if worker.Config.RedshiftEnabled {
+
+		err := redshift.Connect(worker.Config)
+		if err != nil {
+			log.Println("Can't connect to PostgreSQL! Retry after 5s")
+		} else {
+			worker.Stats.RedshiftHealth.Set(true)
+			go func() {
+				defer redshift.Connection.Db.Close()
+				for {
+					adjustEvent := <-worker.RedshiftAdjustEventBus
+					err := redshift.Connection.Insert(adjustEvent)
+					if err != nil {
+						worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
+					} else {
+						worker.Stats.RedshiftAdjustSuccessRing.Add(adjustEvent, err)
+					}
+				}
+			}()
+
+			go func() {
+				defer redshift.Connection.Db.Close()
+				for {
+					snowplowEvent := <-worker.RedshiftSnowplowEventBus
+					err := redshift.Connection.Insert(snowplowEvent)
+					if err != nil {
+						worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
+					} else {
+						worker.Stats.RedshiftSnowplowSuccessRing.Add(snowplowEvent, err)
+					}
+				}
+			}()
+		}
+
 	}
 
 	// worker.Stats.PostgresHealth.Set(false)
 	time.Sleep(5 * time.Second)
-
 }
 
 func (worker *Worker) Killer() {
