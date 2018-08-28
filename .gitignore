@@ -1,1 +1,6 @@
 *.dat
+*.gz
+*.tar
+*.mmdb
+vendor/*
+.vscode/*
