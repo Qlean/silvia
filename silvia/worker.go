@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/abh/geoip"
-
 	consul "github.com/hashicorp/consul/api"
 	"github.com/satori/go.uuid"
 )
@@ -46,10 +45,10 @@ type (
 	}
 
 	Config struct {
-		PostgresEnabled bool   `consul:"Postgres_enabled"`
-		RedshiftEnabled bool   `consul:"redshift_enabled"`
+		PostgresEnabled string `consul:"postgres_enabled"`
+		RedshiftEnabled string `consul:"redshift_enabled"`
 		Port            string `consul:"port"`
-		PostgresConnect string `consul:"Postgres_connect"`
+		PostgresConnect string `consul:"postgres_connect"`
 		RedshiftConnect string `consul:"redshift_connect"`
 		RingSize        string `consul:"ring_size"`
 		RabbitAddr      string `consul:"rabbit_addr"`
@@ -123,7 +122,7 @@ func (worker *Worker) Load() error {
 		return err
 	}
 
-	err = worker.Config.fillFromConsul(client, "silvia")
+	err = worker.Config.fillFromConsul(client, "silvia-redshift")
 	if err != nil {
 		return err
 	}
@@ -179,7 +178,7 @@ func (worker *Worker) Load() error {
 
 	service := &consul.AgentServiceRegistration{
 		ID:     worker.ConsulServiceID,
-		Name:   "silvia",
+		Name:   "silvia-redshift",
 		Port:   port,
 		Checks: checks,
 	}
@@ -264,10 +263,11 @@ func (worker *Worker) Transformer() {
 }
 
 func (worker *Worker) Writer() {
-	postgres := &Postgres{}
-	redshift := &Postgres{}
 
-	if worker.Config.PostgresEnabled {
+	postgres := &Postgres{}
+	redshift := &Redshift{}
+
+	if worker.Config.PostgresEnabled == "true" {
 
 		err := postgres.Connect(worker.Config)
 		if err != nil {
@@ -302,7 +302,7 @@ func (worker *Worker) Writer() {
 		}
 	}
 
-	if worker.Config.RedshiftEnabled {
+	if worker.Config.RedshiftEnabled == "true" {
 
 		err := redshift.Connect(worker.Config)
 		if err != nil {

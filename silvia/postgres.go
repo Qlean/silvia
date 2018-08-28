@@ -16,7 +16,7 @@ type Redshift struct {
 	Connection *gorp.DbMap
 }
 
-func (postgres *Redshift) Connect(config *Config) error {
+func (redshift *Redshift) Connect(config *Config) error {
 	db, err := sql.Open("postgres", config.RedshiftConnect)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (postgres *Redshift) Connect(config *Config) error {
 	dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events").SetKeys(true, "Id")
 	dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events").SetKeys(true, "Id")
 
-	postgres.Connection = dbmap
+	redshift.Connection = dbmap
 	return nil
 }
 

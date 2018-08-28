@@ -153,7 +153,7 @@ func (event *AdjustEvent) Transform(request []byte) error {
 			if err != nil {
 				structNullTime.FieldByName("Valid").SetBool(false)
 			} else {
-				tm := time.Unix(i, 0)
+				tm := time.Unix(i, 0).UTC()
 				structNullTime.FieldByName("Time").Set(reflect.ValueOf(tm))
 				structNullTime.FieldByName("Valid").SetBool(true)
 			}

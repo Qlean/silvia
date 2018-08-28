@@ -10,14 +10,25 @@ import (
 )
 
 type Status struct {
-	RabbitHealth    bool
-	PostgresHealth  bool
-	RedshiftHealth  bool
+	RabbitHealth   bool
+	PostgresHealth bool
+	RedshiftHealth bool
+
 	AdjustSuccess   int
 	AdjustFailed    int
 	SnowplowSuccess int
 	SnowplowFailed  int
-	Uptime          string
+
+	RedshiftAdjustSuccess   int
+	RedshiftAdjustFailed    int
+	RedshiftSnowplowSuccess int
+	RedshiftSnowplowFailed  int
+
+	PostgresAdjustSuccess   int
+	PostgresAdjustFailed    int
+	PostgresSnowplowSuccess int
+	PostgresSnowplowFailed  int
+	Uptime                  string
 }
 
 func (worker *Worker) ApiHandler(fn func(http.ResponseWriter, *http.Request, *Worker)) http.HandlerFunc {
@@ -36,15 +47,36 @@ func StatusApi(w http.ResponseWriter, r *http.Request, worker *Worker) {
 	snowplowSuccessRing := stats.SnowplowSuccessRing.Display()
 	snowplowFailRing := stats.SnowplowFailRing.Display()
 
+	RedshiftadjustSuccessRing := stats.RedshiftAdjustSuccessRing.Display()
+	RedshiftadjustFailRing := stats.RedshiftAdjustFailRing.Display()
+	RedshiftsnowplowSuccessRing := stats.RedshiftSnowplowSuccessRing.Display()
+	RedshiftsnowplowFailRing := stats.RedshiftSnowplowFailRing.Display()
+
+	PostgresadjustSuccessRing := stats.PostgresAdjustSuccessRing.Display()
+	PostgresadjustFailRing := stats.PostgresAdjustFailRing.Display()
+	PostgressnowplowSuccessRing := stats.PostgresSnowplowSuccessRing.Display()
+	PostgressnowplowFailRing := stats.PostgresSnowplowFailRing.Display()
+
 	status := Status{
 		RabbitHealth:    stats.RabbitHealth.Get(),
 		PostgresHealth:  stats.PostgresHealth.Get(),
-		RedshiftHealth:  stats.PostgresHealth.Get(),
+		RedshiftHealth:  stats.RedshiftHealth.Get(),
 		AdjustSuccess:   adjustSuccessRing.Total,
 		AdjustFailed:    adjustFailRing.Total,
 		SnowplowSuccess: snowplowSuccessRing.Total,
 		SnowplowFailed:  snowplowFailRing.Total,
-		Uptime:          time.Since(stats.StartTime).String(),
+
+		RedshiftAdjustSuccess:   RedshiftadjustSuccessRing.Total,
+		RedshiftAdjustFailed:    RedshiftadjustFailRing.Total,
+		RedshiftSnowplowSuccess: RedshiftsnowplowSuccessRing.Total,
+		RedshiftSnowplowFailed:  RedshiftsnowplowFailRing.Total,
+
+		PostgresAdjustSuccess:   PostgresadjustSuccessRing.Total,
+		PostgresAdjustFailed:    PostgresadjustFailRing.Total,
+		PostgresSnowplowSuccess: PostgressnowplowSuccessRing.Total,
+		PostgresSnowplowFailed:  PostgressnowplowFailRing.Total,
+
+		Uptime: time.Since(stats.StartTime).String(),
 	}
 
 	b, err := json.MarshalIndent(status, "", "  ")

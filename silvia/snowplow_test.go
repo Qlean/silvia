@@ -25,7 +25,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-03-30T15:46:20+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-03-30T15:46:20Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`850ed957-9a2f-49e3-bb46-a33a5769298c`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -92,12 +92,12 @@ var transformResultsSnowplow = []struct {
 	},
 	{
 		`Test 1`,
-		`{\x22ip_addr\x22:\x22185.13.47.142\x22,\x22time_local\x22:\x2215/Apr/2016:13:47:08 -0400\x22,\x22request_body\x22:{\x22schema\x22:\x22iglu:com.snowplowanalytics.snowplow/payload_data/jsonschema/1-0-2\x22,\x22data\x22:[{\x22e\x22:\x22pv\x22,\x22url\x22:\x22https://qlean.ru/jobs/msk?utm_source=vk_cpc&utm_medium=dp&utm_campaign=msk_student\x22,\x22page\x22:\x22\xD0\xA0\xD0\xB0\xD0\xB1\xD0\xBE\xD1\x82\xD0\xB0 \xD0\xB2 Qlean\x22,\x22refr\x22:\x22https://vk.com/id330818047\x22,\x22tv\x22:\x22js-2.4.3\x22,\x22tna\x22:\x22cf\x22,\x22aid\x22:\x22qlean_web_app\x22,\x22p\x22:\x22web\x22,\x22tz\x22:\x22Asia/Baghdad\x22,\x22lang\x22:\x22ru\x22,\x22cs\x22:\x22UTF-8\x22,\x22f_pdf\x22:\x221\x22,\x22f_qt\x22:\x220\x22,\x22f_realp\x22:\x220\x22,\x22f_wma\x22:\x220\x22,\x22f_dir\x22:\x220\x22,\x22f_fla\x22:\x221\x22,\x22f_java\x22:\x220\x22,\x22f_gears\x22:\x220\x22,\x22f_ag\x22:\x220\x22,\x22res\x22:\x221920x1080\x22,\x22cd\x22:\x2224\x22,\x22cookie\x22:\x221\x22,\x22eid\x22:\x2265e44f15-2179-40aa-a100-fec9310875b8\x22,\x22dtm\x22:\x221460742426765\x22,\x22co\x22:\x22{\x5C\x22schema\x5C\x22:\x5C\x22iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0\x5C\x22,\x5C\x22data\x5C\x22:[{\x5C\x22data\x5C\x22:{\x5C\x22utm_source\x5C\x22:\x5C\x22vk_cpc\x5C\x22,\x5C\x22utm_medium\x5C\x22:\x5C\x22dp\x5C\x22,\x5C\x22utm_campaign\x5C\x22:\x5C\x22msk_student\x5C\x22,\x5C\x22utm_content\x5C\x22:null,\x5C\x22utm_term\x5C\x22:null}}]}\x22,\x22vp\x22:\x221920x979\x22,\x22ds\x22:\x221903x2340\x22,\x22vid\x22:\x221\x22,\x22duid\x22:\x220b0f7c144db1a317\x22,\x22fp\x22:\x222365485884\x22}]},\x22http_referer\x22:\x22https://qlean.ru/jobs/msk?utm_source=vk_cpc&utm_medium=dp&utm_campaign=msk_student\x22,\x22http_user_agent\x22:\x22Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.112 Safari/537.36\x22}`,
+		`{\x22ip_addr\x22:\x22185.13.47.142\x22,\x22time_local\x22:\x2215/Apr/2016:13:47:08 -0400\x22,\x22request_body\x22:{\x22schema\x22:\x22iglu:com.snowplowanalytics.snowplow/payload_data/jsonschema/1-0-2\x22,\x22data\x22:[{\x22e\x22:\x22pv\x22,\x22url\x22:\x22https://qlean.ru/jobs/msk?utm_source=vk_cpc&utm_medium=dp&utm_campaign=msk_student\x22,\x22page\x22:\x22\xD0\xA0\xD0\xB0\xD0\xB1\xD0\xBE\xD1\x82\xD0\xB0 \xD0\xB2 Qlean\x22,\x22refr\x22:\x22https://vk.com/id330818047\x22,\x22tv\x22:\x22js-2.4.3\x22,\x22tna\x22:\x22cf\x22,\x22aid\x22:\x22qlean_web_app\x22,\x22p\x22:\x22web\x22,\x22tz\x22:\x22Asia/Baghdad\x22,\x22lang\x22:\x22ru\x22,\x22cs\x22:\x22UTF-8\x22,\x22f_pdf\x22:\x221\x22,\x22f_qt\x22:\x220\x22,\x22f_realp\x22:\x220\x22,\x22f_wma\x22:\x220\x22,\x22f_dir\x22:\x220\x22,\x22f_fla\x22:\x221\x22,\x22f_java\x22:\x220\x22,\x22f_gears\x22:\x220\x22,\x22f_ag\x22:\x220\x22,\x22res\x22:\x221920x1080\x22,\x22cd\x22:\x2224\x22,\x22cookie\x22:\x221\x22,\x22eid\x22:\x2265e44f15-2179-40aa-a100-fec9310875b8\x22,\x22dtm\x22:\x221460742426765\x22,\x22co\x22:\x22{\x5C\x22schema\x5C\x22:\x5C\x22iglu:com.snowplowanalytics.snowplow/contexts/jsonschema/1-0-0\x5C\x22,\x5C\x22data\x5C\x22:[{\x5C\x22data\x5C\x22:{\x5C\x22utm_source\x5C\x22:\x5C\x22vk_cpc\x5C\x22,\x5C\x22utm_medium\x5C\x22:\x5C\x22dp\x5C\x22,\x5C\x22utm_campaign\x5C\x22:\x5C\x22msk_student\x5C\x22,\x5C\x22utm_content\x5C\x22:null,\x5C\x22utm_term\x5C\x22:null}}]}\x22,\x22vp\x22:\x221920x979\x22,\x22ds\x22:\x221903x2340\x22,\x22vid\x22:\x221\x22,\x22duid\x22:\x220b0f7c144db1a317\x22,\x22fp\x22:\x222365485884\x22}]},\x22http_referer\x22:\x22https://qlean.ru/jobs/msk?utm_source=vk_cpc&utm_medium=dp&utm_campaign=msk_student\x22,\x22http_user_agent\x22:\x22Mozilla/5.0 (Windows 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.112 Safari/537.36\x22}`,
 		map[string]interface{}{
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:06+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:06Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`65e44f15-2179-40aa-a100-fec9310875b8`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -129,7 +129,7 @@ var transformResultsSnowplow = []struct {
 			"SeProperty":       sql.NullString{Valid: false},
 			"SeValue":          sql.NullFloat64{Valid: false},
 			"UnstructEvent":    sql.NullString{Valid: false},
-			"Useragent":        sql.NullString{`Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.112 Safari/537.36`, true},
+			"Useragent":        sql.NullString{`Mozilla/5.0 (Windows 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.112 Safari/537.36`, true},
 			"BrName":           sql.NullString{`Chrome`, true},
 			"BrFamily":         sql.NullString{Valid: false},
 			"BrVersion":        sql.NullString{`49.0.2623.112`, true},
@@ -169,7 +169,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:17+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:17Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`8e3684b8-cf83-447b-ae11-4a0cb69f9dae`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -241,7 +241,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:11+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:11Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`6e007663-c251-4843-a1cf-e8b9de6039ea`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -251,7 +251,7 @@ var transformResultsSnowplow = []struct {
 			"DomainUserID":     sql.NullString{`608a01b2bf5f645c`, true},
 			"VisitNum":         sql.NullInt64{int64(1), true},
 			"SessionID":        sql.NullString{Valid: false},
-			"GeoCountry":       sql.NullString{`Norway`, true},
+			"GeoCountry":       sql.NullString{`South Africa`, true},
 			"PageURL":          sql.NullString{`https://qlean.ru/jobs/msk?utm_source=targetmail&utm_medium=dp&utm_campaign=6335523_Msk_Qlean_Jobs_Interests_No_AND_F_25-50&utm_content=21211215`, true},
 			"PageTtile":        sql.NullString{`Работа в Qlean`, true},
 			"PageReferrer":     sql.NullString{Valid: false},
@@ -313,7 +313,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:07+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:07Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`32ef32da-6fd5-4c59-8dde-45e65eac91ae`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -385,7 +385,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:48:06+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:48:06Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`0946f3db-a6b7-43a4-bac3-3435d768f0d4`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -457,7 +457,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`3707d483-3af3-4b7d-a54a-b9f8c0dd0809`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -529,7 +529,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`ios_02`, true},
 			"Platform":         sql.NullString{`mob`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:16+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:16Z"); return t }(),
 			"Event":            sql.NullString{`ue`, true},
 			"EventID":          sql.NullString{`2d2084d1-c778-4839-bffd-f66b4c3c3257`, true},
 			"VTracker":         sql.NullString{`ios-0.5.2`, true},
@@ -601,7 +601,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`ios_02`, true},
 			"Platform":         sql.NullString{`mob`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18Z"); return t }(),
 			"Event":            sql.NullString{`ue`, true},
 			"EventID":          sql.NullString{`84ee7098-82a6-4b56-815d-d5ca49325abf`, true},
 			"VTracker":         sql.NullString{`ios-0.5.2`, true},
@@ -673,7 +673,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:53+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:53Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`5d3ab1cc-546b-4e9b-8319-64dcf6cb48a8`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -745,7 +745,7 @@ var transformResultsSnowplow = []struct {
 			"Id":               int(0),
 			"Aid":              sql.NullString{`qlean_web_app`, true},
 			"Platform":         sql.NullString{`web`, true},
-			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18+00:00"); return t }(),
+			"DvceTstamp":       func() time.Time { t, _ := time.Parse(time.RFC3339, "2016-04-15T17:47:18Z"); return t }(),
 			"Event":            sql.NullString{`pv`, true},
 			"EventID":          sql.NullString{`995a6562-ed1a-4ccd-8ca9-27061a908d5a`, true},
 			"VTracker":         sql.NullString{`js-2.4.3`, true},
@@ -862,18 +862,18 @@ func (event *SnowplowEvent) PrintStatement() {
 			fmt.Printf(`"%s": `, field.Name)
 			fmt.Printf(`func () time.Time { t, _ := time.Parse(time.RFC3339, "%s"); return t;}()`, fieldValue.Interface().(time.Time).Format(time.RFC3339))
 			fmt.Printf(",\n")
-		case reflect.TypeOf(false):
-			fmt.Printf(`"%s": `, field.Name)
-			fmt.Printf("bool(%t)", fieldValue)
-			fmt.Printf(",\n")
-		case reflect.TypeOf(float32(0)):
-			fmt.Printf(`"%s": `, field.Name)
-			fmt.Printf("float32(%f)", fieldValue)
-			fmt.Printf(",\n")
-		case reflect.TypeOf(int(0)):
-			fmt.Printf(`"%s": `, field.Name)
-			fmt.Printf("int(%d)", fieldValue)
-			fmt.Printf(",\n")
+			// case reflect.TypeOf(false):
+			// 	fmt.Printf(`"%s": `, field.Name)
+			// 	fmt.Printf("bool(%t)", fieldValue.Interface())
+			// 	fmt.Printf(",\n")
+			// case reflect.TypeOf(float32(0)):
+			// 	fmt.Printf(`"%s": `, field.Name)
+			// 	fmt.Printf("float32(%f)", fieldValue.Interface())
+			// 	fmt.Printf(",\n")
+			// case reflect.TypeOf(int(0)):
+			// 	fmt.Printf(`"%s": `, field.Name)
+			// 	fmt.Printf("int(%d)", fieldValue.Interface())
+			// 	fmt.Printf(",\n")
 		}
 
 	}
@@ -882,7 +882,7 @@ func (event *SnowplowEvent) PrintStatement() {
 func TestSnowplowTransform(t *testing.T) {
 	var GeoDB *geoip.GeoIP
 	var err error
-	GeoDB, err = geoip.Open("../GeoLiteCity.dat")
+	GeoDB, err = geoip.Open("GeoLiteCity.dat")
 	if err != nil {
 		panic("Can't open GeoLiteCity.dat")
 	}

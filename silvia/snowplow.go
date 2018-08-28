@@ -198,7 +198,7 @@ func (timestamp *SnowplowTimestamp) UnmarshalJSON(b []byte) (err error) {
 	}
 
 	i, err := strconv.ParseInt(strUnix, 10, 64)
-	timestamp.Time = time.Unix(i, 0)
+	timestamp.Time = time.Unix(i, 0).UTC()
 	return
 }
 
@@ -208,7 +208,15 @@ func (res *ScreenResolution) UnmarshalJSON(b []byte) (err error) {
 	}
 	s := strings.Split(string(b), "x")
 	res.Width, err = strconv.Atoi(s[0])
+	if err != nil {
+		tempWidth, _ := strconv.ParseFloat(s[0], 64)
+		res.Height = int(tempWidth)
+	}
 	res.Height, err = strconv.Atoi(s[1])
+	if err != nil {
+		tempHeight, _ := strconv.ParseFloat(s[1], 64)
+		res.Height = int(tempHeight)
+	}
 	return
 }
 
