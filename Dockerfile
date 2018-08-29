@@ -18,9 +18,9 @@ RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/down
     dep ensure -vendor-only && \
     curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > GeoLiteCity.dat
 RUN cd ./silvia && ln -s ../GeoLiteCity.dat GeoLiteCity.dat && go test
-RUN go build  -o ./bin/silvia ./cmd \
-    && chmod +x ./bin/silvia && \
-    ln -s $(pwd)/GeoLiteCity.dat ./bin/GeoLiteCity.dat
+RUN go build  -o /app/silvia ./cmd \
+    && chmod +x /app/silvia && \
+    ln -s $(pwd)/GeoLiteCity.dat /app/GeoLiteCity.dat
 
 
 # FROM scratch
