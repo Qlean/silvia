@@ -122,7 +122,7 @@ func (worker *Worker) Load() error {
 		return err
 	}
 
-	err = worker.Config.fillFromConsul(client, "silvia-redshift")
+	err = worker.Config.fillFromConsul(client, "silvia")
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (worker *Worker) Load() error {
 
 	service := &consul.AgentServiceRegistration{
 		ID:     worker.ConsulServiceID,
-		Name:   "silvia-redshift",
+		Name:   "silvia",
 		Port:   port,
 		Checks: checks,
 	}
