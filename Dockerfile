@@ -2,29 +2,35 @@ FROM golang:1.11.0
 # as build
 
 # Install system dependencies
+
+ARG SRC=/go/src/github.com/Qlean/silvia
 ENV GOPATH /go
+WORKDIR /app
 
 RUN apt-get update -qq && \
-    apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential && \
-    mkdir -p /go/src/github.com/Qlean/silvia
-WORKDIR /go/src/github.com/Qlean/silvia
+    apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential
 
-# COPY .  ./
-COPY Gopkg.* ./
-COPY cmd/ ./cmd/
-COPY silvia/ ./silvia/
+COPY Gopkg.* $SRC/
+COPY cmd/ $SRC/cmd/
+COPY silvia/ $SRC/silvia/
 
-RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 && chmod +x /usr/local/bin/dep && \
-    dep ensure -vendor-only && \
-    curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > GeoLiteCity.dat
-RUN cd ./silvia && ln -s ../GeoLiteCity.dat GeoLiteCity.dat && go test
-RUN go build  -o /app/silvia ./cmd \
-    && chmod +x /app/silvia && \
-    ln -s $(pwd)/GeoLiteCity.dat /app/GeoLiteCity.dat
+RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 && \
+    chmod +x /usr/local/bin/dep && \
+    cd $SRC && \
+    dep ensure -vendor-only && rm /usr/local/bin/dep &&\
+    curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > /app/GeoLiteCity.dat && \
+    cd ./silvia && \
+    ln -s /app/GeoLiteCity.dat GeoLiteCity.dat && \
+    go test
 
 
-# FROM scratch
-# COPY --from=build /go/src/github.com/Qlean/silvia/bin/silvia /
-CMD ["./bin/silvia"]
+RUN cd $SRC && \
+    go build  -o /app/silvia ./cmd && \
+    chmod +x /app/silvia && \
+    rm -rf $GOPATH
+
+# # FROM scratch
+# # COPY --from=build /go/src/github.com/Qlean/silvia/bin/silvia /
+CMD ["/app/silvia"]
 
 LABEL MAINTAINER=Qlean
