@@ -1,19 +1,37 @@
 package silvia
 
-import(
-	"strconv"
+import (
 	"database/sql"
+	"strconv"
 
-	"gopkg.in/gorp.v1"
 	_ "github.com/lib/pq"
+	"gopkg.in/gorp.v1"
 )
 
 type Postgres struct {
 	Connection *gorp.DbMap
 }
 
+type Redshift struct {
+	Connection *gorp.DbMap
+}
+
+func (redshift *Redshift) Connect(config *Config) error {
+	db, err := sql.Open("postgres", config.RedshiftConnect)
+	if err != nil {
+		return err
+	}
+
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
+	dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events").SetKeys(true, "Id")
+	dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events").SetKeys(true, "Id")
+
+	redshift.Connection = dbmap
+	return nil
+}
+
 func (postgres *Postgres) Connect(config *Config) error {
-	db, err := sql.Open("postgres", config.PgConnect)
+	db, err := sql.Open("postgres", config.PostgresConnect)
 	if err != nil {
 		return err
 	}

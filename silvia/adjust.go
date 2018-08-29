@@ -1,19 +1,19 @@
 package silvia
 
-import(
-	"time"
-	"reflect"
-	"net/url"
-	"strconv"
-	"strings"
+import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"net/url"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/serenize/snaker"
 )
 
-type(
+type (
 	NullTime struct {
 		Time  time.Time
 		Valid bool
@@ -75,13 +75,12 @@ type(
 	}
 
 	AdjustRequest struct {
-		IPAddress   string    `json:"ip_addr"`
-		TimeLocal   string    `json:"time_local"`
-		Request     string    `json:"request"`
-		Referer     string    `json:"http_referer"`
-		Useragent   string    `json:"http_user_agent"`
+		IPAddress string `json:"ip_addr"`
+		TimeLocal string `json:"time_local"`
+		Request   string `json:"request"`
+		Referer   string `json:"http_referer"`
+		Useragent string `json:"http_user_agent"`
 	}
-
 )
 
 func (nt *NullTime) Scan(value interface{}) error {
@@ -108,7 +107,7 @@ func (event *AdjustEvent) Transform(request []byte) error {
 	adjustRequest := &AdjustRequest{}
 	err = json.Unmarshal([]byte(normString), adjustRequest)
 	if err == nil {
-		request = []byte(adjustRequest.Request)[4:len(adjustRequest.Request)-9]
+		request = []byte(adjustRequest.Request)[4 : len(adjustRequest.Request)-9]
 	}
 
 	u, err := url.Parse(string(request))
@@ -154,12 +153,12 @@ func (event *AdjustEvent) Transform(request []byte) error {
 			if err != nil {
 				structNullTime.FieldByName("Valid").SetBool(false)
 			} else {
-				tm := time.Unix(i, 0)
+				tm := time.Unix(i, 0).UTC()
 				structNullTime.FieldByName("Time").Set(reflect.ValueOf(tm))
 				structNullTime.FieldByName("Valid").SetBool(true)
 			}
 		}
 	}
 
-    return nil
+	return nil
 }

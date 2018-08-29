@@ -1,17 +1,17 @@
 package silvia
 
-import(
-	"time"
-	"strings"
-	"strconv"
+import (
 	"database/sql"
 	"encoding/json"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/abh/geoip"
 	"github.com/mssola/user_agent"
 )
 
-type(
+type (
 	// database structure
 	SnowplowContextsData struct {
 		Data struct {
@@ -34,80 +34,80 @@ type(
 	}
 
 	SnowplowEvent struct {
-		Body            []byte          `db:"-"`
-		Id              int             `db:"-"`
-		Aid             sql.NullString  `db:"app_id"`
-		Platform        sql.NullString  `db:"platform"`
-		CollectorTstamp time.Time       `db:"collector_tstamp"`
-		DvceTstamp      time.Time       `db:"dvce_tstamp"`
-		Event           sql.NullString  `db:"event"`
-		EventID         sql.NullString  `db:"event_id"`
-		VTracker        sql.NullString  `db:"v_tracker"`
-		UserID          sql.NullInt64   `db:"user_id"`
-		UserIP          sql.NullString  `db:"user_ipaddress"`
-		UserFingerprint sql.NullString  `db:"user_fingerprint"`
-		DomainUserID    sql.NullString  `db:"domain_userid"`
-		VisitNum        sql.NullInt64   `db:"visit_num"`
-		SessionID       sql.NullString  `db:"session_id"`
-		GeoCountry      sql.NullString  `db:"geo_country"`
-		GeoRegion       sql.NullString  `db:"geo_region"`
-		GeoCity         sql.NullString  `db:"geo_city"`
-		GeoZipcode      sql.NullString  `db:"geo_zipcode"`
-		GeoLatitude     float32         `db:"geo_latitude"`
-		GeoLongtitude   float32         `db:"geo_longitude"`
-		GeoRegionName   sql.NullString  `db:"geo_region_name"`
-		PageURL         sql.NullString  `db:"page_url"`
-		PageTtile       sql.NullString  `db:"page_title"`
-		PageReferrer    sql.NullString  `db:"page_referrer"`
-		PageURLHost     sql.NullString  `db:"page_urlhost"`
-		PageURLPath     sql.NullString  `db:"page_urlpath"`
-		PageURLQuery    sql.NullString  `db:"page_urlquery"`
-		RefrURLHost     sql.NullString  `db:"refr_urlhost"`
-		RefrURLPath     sql.NullString  `db:"refr_urlpath"`
-		RefrURLQuety    sql.NullString  `db:"refr_urlquery"`
-		UtmMedium       sql.NullString  `db:"utm_medium"`
-		UtmSource       sql.NullString  `db:"utm_source"`
-		UtmTerm         sql.NullString  `db:"utm_term"`
-		UtmContent      sql.NullString  `db:"utm_content"`
-		UtmCampaign     sql.NullString  `db:"utm_campaign"`
-		Contexts        sql.NullString  `db:"contexts"`
-		SeCategory      sql.NullString  `db:"se_category"`
-		SeAction        sql.NullString  `db:"se_action"`
-		SeLabel         sql.NullString  `db:"se_label"`
-		SeProperty      sql.NullString  `db:"se_property"`
-		SeValue         sql.NullFloat64 `db:"se_value"`
-		UnstructEvent   sql.NullString  `db:"unstruct_event"`
-		Useragent       sql.NullString  `db:"useragent"`
-		BrName          sql.NullString  `db:"br_name"`
-		BrFamily        sql.NullString  `db:"br_family"`
-		BrVersion       sql.NullString  `db:"br_version"`
-		BrType          sql.NullString  `db:"br_type"`
-		BrRndrNgn       sql.NullString  `db:"br_renderengine"`
-		BrLang          sql.NullString  `db:"br_lang"`
-		BrPDF           bool            `db:"br_features_pdf"`
-		BrFlash         bool            `db:"br_features_flash"`
-		BrJava          bool            `db:"br_features_java"`
-		BrDir           bool            `db:"br_features_director"`
-		BrQT            bool            `db:"br_features_quicktime"`
-		BrRealPlayer    bool            `db:"br_features_realplayer"`
-		BrWMA           bool            `db:"br_features_windowsmedia"`
-		BrGears         bool            `db:"br_features_gears"`
-		BrAg            bool            `db:"br_features_silverlight"`
-		BrCookies       bool            `db:"br_cookies"`
-		BrColorDepth    sql.NullInt64   `db:"br_colordepth"`
-		BrViewWidth     int             `db:"br_viewwidth"`
-		BrViewHeight    int             `db:"br_viewheight"`
-		OsName          sql.NullString  `db:"os_name"`
-		OsFamily        sql.NullString  `db:"os_family"`
-		OsManufacturer  sql.NullString  `db:"os_manufacturer"`
-		OsTimezone      sql.NullString  `db:"os_timezone"`
-		DvceType        sql.NullString  `db:"dvce_type"`
-		DvceIsMobile    bool            `db:"dvce_ismobile"`
-		DvceScreenWidth int             `db:"dvce_screenwidth"`
-		DvceScreenHeight int            `db:"dvce_screenheight"`
-		DocCharset      sql.NullString  `db:"doc_charset"`
-		DocWidth        int             `db:"doc_width"`
-		DocHeight       int             `db:"doc_height"`
+		Body             []byte          `db:"-"`
+		Id               int             `db:"-"`
+		Aid              sql.NullString  `db:"app_id"`
+		Platform         sql.NullString  `db:"platform"`
+		CollectorTstamp  time.Time       `db:"collector_tstamp"`
+		DvceTstamp       time.Time       `db:"dvce_tstamp"`
+		Event            sql.NullString  `db:"event"`
+		EventID          sql.NullString  `db:"event_id"`
+		VTracker         sql.NullString  `db:"v_tracker"`
+		UserID           sql.NullInt64   `db:"user_id"`
+		UserIP           sql.NullString  `db:"user_ipaddress"`
+		UserFingerprint  sql.NullString  `db:"user_fingerprint"`
+		DomainUserID     sql.NullString  `db:"domain_userid"`
+		VisitNum         sql.NullInt64   `db:"visit_num"`
+		SessionID        sql.NullString  `db:"session_id"`
+		GeoCountry       sql.NullString  `db:"geo_country"`
+		GeoRegion        sql.NullString  `db:"geo_region"`
+		GeoCity          sql.NullString  `db:"geo_city"`
+		GeoZipcode       sql.NullString  `db:"geo_zipcode"`
+		GeoLatitude      float32         `db:"geo_latitude"`
+		GeoLongtitude    float32         `db:"geo_longitude"`
+		GeoRegionName    sql.NullString  `db:"geo_region_name"`
+		PageURL          sql.NullString  `db:"page_url"`
+		PageTtile        sql.NullString  `db:"page_title"`
+		PageReferrer     sql.NullString  `db:"page_referrer"`
+		PageURLHost      sql.NullString  `db:"page_urlhost"`
+		PageURLPath      sql.NullString  `db:"page_urlpath"`
+		PageURLQuery     sql.NullString  `db:"page_urlquery"`
+		RefrURLHost      sql.NullString  `db:"refr_urlhost"`
+		RefrURLPath      sql.NullString  `db:"refr_urlpath"`
+		RefrURLQuety     sql.NullString  `db:"refr_urlquery"`
+		UtmMedium        sql.NullString  `db:"utm_medium"`
+		UtmSource        sql.NullString  `db:"utm_source"`
+		UtmTerm          sql.NullString  `db:"utm_term"`
+		UtmContent       sql.NullString  `db:"utm_content"`
+		UtmCampaign      sql.NullString  `db:"utm_campaign"`
+		Contexts         sql.NullString  `db:"contexts"`
+		SeCategory       sql.NullString  `db:"se_category"`
+		SeAction         sql.NullString  `db:"se_action"`
+		SeLabel          sql.NullString  `db:"se_label"`
+		SeProperty       sql.NullString  `db:"se_property"`
+		SeValue          sql.NullFloat64 `db:"se_value"`
+		UnstructEvent    sql.NullString  `db:"unstruct_event"`
+		Useragent        sql.NullString  `db:"useragent"`
+		BrName           sql.NullString  `db:"br_name"`
+		BrFamily         sql.NullString  `db:"br_family"`
+		BrVersion        sql.NullString  `db:"br_version"`
+		BrType           sql.NullString  `db:"br_type"`
+		BrRndrNgn        sql.NullString  `db:"br_renderengine"`
+		BrLang           sql.NullString  `db:"br_lang"`
+		BrPDF            bool            `db:"br_features_pdf"`
+		BrFlash          bool            `db:"br_features_flash"`
+		BrJava           bool            `db:"br_features_java"`
+		BrDir            bool            `db:"br_features_director"`
+		BrQT             bool            `db:"br_features_quicktime"`
+		BrRealPlayer     bool            `db:"br_features_realplayer"`
+		BrWMA            bool            `db:"br_features_windowsmedia"`
+		BrGears          bool            `db:"br_features_gears"`
+		BrAg             bool            `db:"br_features_silverlight"`
+		BrCookies        bool            `db:"br_cookies"`
+		BrColorDepth     sql.NullInt64   `db:"br_colordepth"`
+		BrViewWidth      int             `db:"br_viewwidth"`
+		BrViewHeight     int             `db:"br_viewheight"`
+		OsName           sql.NullString  `db:"os_name"`
+		OsFamily         sql.NullString  `db:"os_family"`
+		OsManufacturer   sql.NullString  `db:"os_manufacturer"`
+		OsTimezone       sql.NullString  `db:"os_timezone"`
+		DvceType         sql.NullString  `db:"dvce_type"`
+		DvceIsMobile     bool            `db:"dvce_ismobile"`
+		DvceScreenWidth  int             `db:"dvce_screenwidth"`
+		DvceScreenHeight int             `db:"dvce_screenheight"`
+		DocCharset       sql.NullString  `db:"doc_charset"`
+		DocWidth         int             `db:"doc_width"`
+		DocHeight        int             `db:"doc_height"`
 	}
 
 	// request structure
@@ -116,7 +116,7 @@ type(
 	}
 
 	ScreenResolution struct {
-		Width int
+		Width  int
 		Height int
 	}
 
@@ -176,7 +176,6 @@ type(
 		Referer     string    `json:"http_referer"`
 		Useragent   string    `json:"http_user_agent"`
 	}
-
 )
 
 func (nginxTime *NginxTime) UnmarshalJSON(b []byte) (err error) {
@@ -188,17 +187,18 @@ func (nginxTime *NginxTime) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-
 func (timestamp *SnowplowTimestamp) UnmarshalJSON(b []byte) (err error) {
 	if b[0] == '"' && b[len(b)-1] == '"' {
 		b = b[1 : len(b)-1]
 	}
 
 	strUnix := string(b)
-	if len(strUnix) >= 13 { strUnix = strUnix[0 : len(strUnix)-3] }
+	if len(strUnix) >= 13 {
+		strUnix = strUnix[0 : len(strUnix)-3]
+	}
 
 	i, err := strconv.ParseInt(strUnix, 10, 64)
-	timestamp.Time = time.Unix(i, 0)
+	timestamp.Time = time.Unix(i, 0).UTC()
 	return
 }
 
@@ -208,7 +208,15 @@ func (res *ScreenResolution) UnmarshalJSON(b []byte) (err error) {
 	}
 	s := strings.Split(string(b), "x")
 	res.Width, err = strconv.Atoi(s[0])
+	if err != nil {
+		tempWidth, _ := strconv.ParseFloat(s[0], 64)
+		res.Height = int(tempWidth)
+	}
 	res.Height, err = strconv.Atoi(s[1])
+	if err != nil {
+		tempHeight, _ := strconv.ParseFloat(s[1], 64)
+		res.Height = int(tempHeight)
+	}
 	return
 }
 
@@ -308,7 +316,7 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 	checkStringForNull(ua.Platform(), &event.DvceType)
 
 	name, version := ua.Engine()
-	checkStringForNull(name + version, &event.BrRndrNgn)
+	checkStringForNull(name+version, &event.BrRndrNgn)
 
 	name, version = ua.Browser()
 	checkStringForNull(name, &event.BrName)
@@ -322,7 +330,7 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 			return err
 		} else {
 			rawContexts := contextsField.Data[0]
-			rawContexts = rawContexts[8:len(rawContexts)-1]
+			rawContexts = rawContexts[8 : len(rawContexts)-1]
 
 			// is json?
 			var js interface{}
@@ -333,7 +341,6 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 
 			checkStringForNull(string(rawContexts), &event.Contexts)
 		}
-
 
 		contexts := &SnowplowContexts{}
 		err = json.Unmarshal([]byte(snowplowData.Contexts), &contexts)
@@ -352,7 +359,9 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 	}
 
 	// Bind unstructured event
-	if len(snowplowData.UnstructEvent) > 0 { checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent) }
+	if len(snowplowData.UnstructEvent) > 0 {
+		checkStringForNull(snowplowData.UnstructEvent, &event.UnstructEvent)
+	}
 
 	return nil
 }

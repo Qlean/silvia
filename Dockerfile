@@ -1,17 +1,30 @@
-FROM golang:1.6.0-wheezy
-MAINTAINER Qlean
+FROM golang:1.11.0
+# as build
 
 # Install system dependencies
+ENV GOPATH /go
+
 RUN apt-get update -qq && \
-    apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential
+    apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential && \
+    mkdir -p /go/src/github.com/Qlean/silvia
+WORKDIR /go/src/github.com/Qlean/silvia
 
-RUN mkdir -p /app
-WORKDIR /app
-COPY . /app/
-ENV GOPATH /go/
-RUN go get -d -v
-RUN curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > GeoLiteCity.dat
-RUN cd /app/silvia && go test
-RUN go build
+# COPY .  ./
+COPY Gopkg.* ./
+COPY cmd/ ./cmd/
+COPY silvia/ ./silvia/
 
-CMD ["./app"]
+RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 && chmod +x /usr/local/bin/dep && \
+    dep ensure -vendor-only && \
+    curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > GeoLiteCity.dat
+RUN cd ./silvia && ln -s ../GeoLiteCity.dat GeoLiteCity.dat && go test
+RUN go build  -o ./bin/silvia ./cmd \
+    && chmod +x ./bin/silvia && \
+    ln -s $(pwd)/GeoLiteCity.dat ./bin/GeoLiteCity.dat
+
+
+# FROM scratch
+# COPY --from=build /go/src/github.com/Qlean/silvia/bin/silvia /
+CMD ["./bin/silvia"]
+
+LABEL MAINTAINER=Qlean
