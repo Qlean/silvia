@@ -255,91 +255,104 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
-				worker.PostgresSnowplowEventBus <- snowplowEvent
-				worker.RedshiftSnowplowEventBus <- snowplowEvent
+				if worker.Stats.PostgresHealth.Get() {
+					worker.PostgresSnowplowEventBus <- snowplowEvent
+				}
+				if worker.Stats.RedshiftHealth.Get() {
+					worker.RedshiftSnowplowEventBus <- snowplowEvent
+				}
 			}
 		}
 	}()
 }
 
-func (worker *Worker) Writer() {
+func (worker *Worker) Writer(driver string) {
 
-	postgres := &Postgres{}
-	redshift := &Redshift{}
+	switch driver {
 
-	if worker.Config.PostgresEnabled == "true" {
+	case "postgres":
 
-		err := postgres.Connect(worker.Config)
-		if err != nil {
-			log.Println("Can't connect to PostgreSQL! Retry after 5s")
-		} else {
-			worker.Stats.PostgresHealth.Set(true)
-			go func() {
-				defer postgres.Connection.Db.Close()
-				for {
-					adjustEvent := <-worker.PostgresAdjustEventBus
-					err := postgres.Connection.Insert(adjustEvent)
-					if err != nil {
-						worker.Stats.PostgresAdjustFailRing.Add(adjustEvent, err)
-					} else {
-						worker.Stats.PostgresAdjustSuccessRing.Add(adjustEvent, err)
+		if worker.Config.PostgresEnabled == "true" {
+
+			postgres := &Postgres{}
+			err := postgres.Connect(worker.Config)
+
+			if err != nil {
+				log.Println("Can't connect to PostgreSQL! Retry after 5s")
+			} else {
+				worker.Stats.PostgresHealth.Set(true)
+				go func() {
+					defer postgres.Connection.Db.Close()
+					for {
+						adjustEvent := <-worker.PostgresAdjustEventBus
+						err := postgres.Connection.Insert(adjustEvent)
+						if err != nil {
+							worker.Stats.PostgresAdjustFailRing.Add(adjustEvent, err)
+						} else {
+							worker.Stats.PostgresAdjustSuccessRing.Add(adjustEvent, err)
+						}
 					}
-				}
-			}()
+				}()
 
-			go func() {
-				defer postgres.Connection.Db.Close()
-				for {
-					snowplowEvent := <-worker.PostgresSnowplowEventBus
-					err := postgres.Connection.Insert(snowplowEvent)
-					if err != nil {
-						worker.Stats.PostgresSnowplowFailRing.Add(snowplowEvent, err)
-					} else {
-						worker.Stats.PostgresSnowplowSuccessRing.Add(snowplowEvent, err)
+				go func() {
+					defer postgres.Connection.Db.Close()
+					for {
+						snowplowEvent := <-worker.PostgresSnowplowEventBus
+						err := postgres.Connection.Insert(snowplowEvent)
+						if err != nil {
+							worker.Stats.PostgresSnowplowFailRing.Add(snowplowEvent, err)
+						} else {
+							worker.Stats.PostgresSnowplowSuccessRing.Add(snowplowEvent, err)
+						}
 					}
-				}
-			}()
+				}()
+			}
 		}
-	}
+	case "redshift":
 
-	if worker.Config.RedshiftEnabled == "true" {
+		redshift := &Redshift{}
 
-		err := redshift.Connect(worker.Config)
-		if err != nil {
-			log.Println("Can't connect to PostgreSQL! Retry after 5s")
-		} else {
-			worker.Stats.RedshiftHealth.Set(true)
-			go func() {
-				defer redshift.Connection.Db.Close()
-				for {
-					adjustEvent := <-worker.RedshiftAdjustEventBus
-					err := redshift.Connection.Insert(adjustEvent)
-					if err != nil {
-						worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
-					} else {
-						worker.Stats.RedshiftAdjustSuccessRing.Add(adjustEvent, err)
+		if worker.Config.RedshiftEnabled == "true" {
+			err := redshift.Connect(worker.Config)
+			if err != nil {
+				log.Println("Can't connect to Redshift! Retry after 5s")
+			} else {
+				worker.Stats.RedshiftHealth.Set(true)
+				go func() {
+					defer redshift.Connection.Db.Close()
+					for {
+						adjustEvent := <-worker.RedshiftAdjustEventBus
+						err := redshift.Connection.Insert(adjustEvent)
+						if err != nil {
+							worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
+						} else {
+							worker.Stats.RedshiftAdjustSuccessRing.Add(adjustEvent, err)
+						}
 					}
-				}
-			}()
+				}()
 
-			go func() {
-				defer redshift.Connection.Db.Close()
-				for {
-					snowplowEvent := <-worker.RedshiftSnowplowEventBus
-					err := redshift.Connection.Insert(snowplowEvent)
-					if err != nil {
-						worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
-					} else {
-						worker.Stats.RedshiftSnowplowSuccessRing.Add(snowplowEvent, err)
+				go func() {
+					defer redshift.Connection.Db.Close()
+
+					for {
+						snowplowEvent := <-worker.RedshiftSnowplowEventBus
+
+						err := redshift.Connection.Insert(snowplowEvent)
+						if err != nil {
+							worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
+						} else {
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(snowplowEvent, err)
+						}
 					}
-				}
-			}()
+				}()
+			}
+
 		}
 
 	}
 
 	// worker.Stats.PostgresHealth.Set(false)
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 }
 
 func (worker *Worker) Killer() {
