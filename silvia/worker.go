@@ -323,16 +323,23 @@ func (worker *Worker) Writer(driver string) {
 				snowplowTmap := redshift.Connection.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
 				adjustTmap := redshift.Connection.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
 
-				// Create sql template for copy oerpation
-				snowplowStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
-				if err != nil {
-					log.Printf("snowplowStmt ERROR %s", err)
-				}
+				snowplowCopy := pq.CopyInSchema("atomic", "events", GetColumns(snowplowTmap)...)
+				adjustCopy := pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...)
 
-				adjustStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...))
-				if err != nil {
-					log.Printf("adjustStmt ERROR %s", err)
-				}
+				// Create sql template for copy oerpation
+				// txn, err := redshift.Connection.Begin()
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+				// snowplowStmt, err := txn.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
+				// if err != nil {
+				// 	log.Printf("snowplowStmt ERROR %s", err)
+				// }
+
+				// adjustStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...))
+				// if err != nil {
+				// 	log.Printf("adjustStmt ERROR %s", err)
+				// }
 
 				worker.Stats.RedshiftHealth.Set(true)
 				go func() {
@@ -340,8 +347,32 @@ func (worker *Worker) Writer(driver string) {
 					for {
 						adjustEvent := <-worker.RedshiftAdjustEventBus
 						//
-						_, err := adjustStmt.Exec(adjustEvent)
-						// err := redshift.Connection.Insert(adjustEvent)
+						txn, err := redshift.Connection.Begin()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						stmt, err := txn.Prepare(adjustCopy)
+						if err != nil {
+							log.Printf("snowplowStmt ERROR %s", err)
+						}
+
+						_, err = stmt.Exec(adjustEvent)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						_, err = stmt.Exec()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						err = stmt.Close()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						err = txn.Commit()
 
 						if err != nil {
 							worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
@@ -357,7 +388,35 @@ func (worker *Worker) Writer(driver string) {
 					for {
 						snowplowEvent := <-worker.RedshiftSnowplowEventBus
 
-						_, err := snowplowStmt.Exec(snowplowEvent)
+						txn, err := redshift.Connection.Begin()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						stmt, err := txn.Prepare(snowplowCopy)
+						if err != nil {
+							log.Printf("snowplowStmt ERROR %s", err)
+						}
+
+						_, err = stmt.Exec(snowplowEvent)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						_, err = stmt.Exec()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						err = stmt.Close()
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						err = txn.Commit()
+						// if err != nil {
+						// log.Fatal(err)
+						// }
 						// err := redshift.Connection.Insert(snowplowEvent)
 						if err != nil {
 							worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
