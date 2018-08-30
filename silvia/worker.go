@@ -155,8 +155,8 @@ func (worker *Worker) Load() error {
 	worker.SnowplowRequestBus = make(chan []byte)
 	worker.PostgresAdjustEventBus = make(chan *AdjustEvent)
 	worker.PostgresSnowplowEventBus = make(chan *SnowplowEvent)
-	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent)
-	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent)
+	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 100)
+	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 100)
 
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
