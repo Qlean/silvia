@@ -326,12 +326,12 @@ func (worker *Worker) Writer(driver string) {
 				// Create sql template for copy oerpation
 				snowplowStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
 				if err != nil {
-					// return
+					log.Printf("snowplowStmt ERROR %s", err)
 				}
 
 				adjustStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...))
 				if err != nil {
-					// return
+					log.Printf("adjustStmt ERROR %s", err)
 				}
 
 				worker.Stats.RedshiftHealth.Set(true)
