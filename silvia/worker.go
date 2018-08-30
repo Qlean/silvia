@@ -13,6 +13,7 @@ import (
 
 	"github.com/abh/geoip"
 	consul "github.com/hashicorp/consul/api"
+	"github.com/lib/pq"
 	"github.com/satori/go.uuid"
 )
 
@@ -317,12 +318,31 @@ func (worker *Worker) Writer(driver string) {
 			if err != nil {
 				log.Println("Can't connect to Redshift! Retry after 5s")
 			} else {
+
+				// Create tablemaps for adjust and atomic
+				snowplowTmap := redshift.Connection.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
+				adjustTmap := redshift.Connection.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
+
+				// Create sql template for copy oerpation
+				snowplowStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
+				if err != nil {
+					// return
+				}
+
+				adjustStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...))
+				if err != nil {
+					// return
+				}
+
 				worker.Stats.RedshiftHealth.Set(true)
 				go func() {
 					defer redshift.Connection.Db.Close()
 					for {
 						adjustEvent := <-worker.RedshiftAdjustEventBus
-						err := redshift.Connection.Insert(adjustEvent)
+						//
+						_, err := adjustStmt.Exec(adjustEvent)
+						// err := redshift.Connection.Insert(adjustEvent)
+
 						if err != nil {
 							worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
 						} else {
@@ -337,7 +357,8 @@ func (worker *Worker) Writer(driver string) {
 					for {
 						snowplowEvent := <-worker.RedshiftSnowplowEventBus
 
-						err := redshift.Connection.Insert(snowplowEvent)
+						_, err := snowplowStmt.Exec(snowplowEvent)
+						// err := redshift.Connection.Insert(snowplowEvent)
 						if err != nil {
 							worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
 						} else {
