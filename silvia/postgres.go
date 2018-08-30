@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"strconv"
 
+	_ "github.com/lib/pq"
 	"gopkg.in/gorp.v1"
 )
 

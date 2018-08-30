@@ -1,19 +1,20 @@
 package silvia
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/abh/geoip"
 	consul "github.com/hashicorp/consul/api"
-	"github.com/lib/pq"
 	"github.com/satori/go.uuid"
 )
 
@@ -113,7 +114,7 @@ func (worker *Worker) Load() error {
 	}
 
 	consulConfig := &consul.Config{
-		Address:    "127.0.0.1:8500",
+		Address:    "consul.service.consul:80",
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
 	}
@@ -281,6 +282,7 @@ func (worker *Worker) Writer(driver string) {
 			if err != nil {
 				log.Println("Can't connect to PostgreSQL! Retry after 5s")
 			} else {
+
 				worker.Stats.PostgresHealth.Set(true)
 				go func() {
 					defer postgres.Connection.Db.Close()
@@ -323,8 +325,14 @@ func (worker *Worker) Writer(driver string) {
 				snowplowTmap := redshift.Connection.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
 				adjustTmap := redshift.Connection.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
 
-				snowplowCopy := pq.CopyInSchema("atomic", "events", GetColumns(snowplowTmap)...)
-				adjustCopy := pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...)
+				snowplowInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values (%s) ;", "atomic", "events", strings.Join(GetColumns(snowplowTmap)[2:], "\", \""), strings.Join(makeRange(1, len(GetColumns(snowplowTmap)[2:])), (", ")))
+				// snowplowCopy := pq.CopyInSchema("atomic", "events", strings.Join(GetColumns(snowplowTmap), " "))
+				log.Println(snowplowInsert)
+				adjustInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values (%s);", "adjust", "events", strings.Join(GetColumns(adjustTmap)[2:], "\", \""), strings.Join(makeRange(1, len(GetColumns(adjustTmap)[2:])), (", ")))
+				log.Println(adjustInsert)
+
+				// adjustCopy := pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...)
+				// log.Println(adjustCopy)
 
 				// Create sql template for copy oerpation
 				// txn, err := redshift.Connection.Begin()
@@ -352,14 +360,14 @@ func (worker *Worker) Writer(driver string) {
 							log.Fatal(err)
 						}
 
-						stmt, err := txn.Prepare(adjustCopy)
+						stmt, err := txn.Prepare(adjustInsert)
 						if err != nil {
-							log.Printf("snowplowStmt ERROR %s", err)
+							log.Printf("AdjustStmt ERROR %s", err)
 						}
 
 						_, err = stmt.Exec(adjustEvent)
 						if err != nil {
-							log.Fatal(err)
+							log.Fatal("Exec adjustEvent", err)
 						}
 
 						_, err = stmt.Exec()
@@ -393,14 +401,15 @@ func (worker *Worker) Writer(driver string) {
 							log.Fatal(err)
 						}
 
-						stmt, err := txn.Prepare(snowplowCopy)
+						stmt, err := txn.Prepare(snowplowInsert)
 						if err != nil {
-							log.Printf("snowplowStmt ERROR %s", err)
+							log.Fatalf("snowplowStmt ERROR %s %s", stmt, err)
+							// log.Printf("snowplowStmt ERROR %s", err)
 						}
 
 						_, err = stmt.Exec(snowplowEvent)
 						if err != nil {
-							log.Fatal(err)
+							log.Fatal("Exec snowplowEvent", err)
 						}
 
 						_, err = stmt.Exec()
@@ -441,4 +450,12 @@ func (worker *Worker) Killer() {
 	<-signalCh
 	worker.ConsulAgent.ServiceDeregister(worker.ConsulServiceID)
 	os.Exit(0)
+}
+
+func makeRange(min, max int) []string {
+	a := make([]string, max-min+1)
+	for i := range a {
+		a[i] = "$" + strconv.Itoa(min+i)
+	}
+	return a
 }
