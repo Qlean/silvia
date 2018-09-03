@@ -342,6 +342,11 @@ func (worker *Worker) Writer(driver string) {
 							event := <-worker.RedshiftAdjustEventBus
 							stringEvent, err := getStringEventValues(event)
 
+							if err != nil {
+								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+								continue
+							}
+
 							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
@@ -357,6 +362,7 @@ func (worker *Worker) Writer(driver string) {
 							query.WriteString(", ")
 
 						}
+
 						query.WriteString(";")
 						_, err = redshift.Connection.Exec(query.String())
 
@@ -379,6 +385,11 @@ func (worker *Worker) Writer(driver string) {
 							event := <-worker.RedshiftSnowplowEventBus
 							stringEvent, err := getStringEventValues(event)
 
+							if err != nil {
+								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								continue
+							}
+
 							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
@@ -394,7 +405,9 @@ func (worker *Worker) Writer(driver string) {
 							query.WriteString(", ")
 
 						}
+
 						query.WriteString(";")
+
 						_, err = redshift.Connection.Exec(query.String())
 
 						if err != nil {
