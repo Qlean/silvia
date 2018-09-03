@@ -1,6 +1,8 @@
 package silvia
 
 import (
+	"bytes"
+	"database/sql/driver"
 	"fmt"
 	"log"
 	"net/http"
@@ -157,8 +159,8 @@ func (worker *Worker) Load() error {
 	worker.SnowplowRequestBus = make(chan []byte)
 	worker.PostgresAdjustEventBus = make(chan *AdjustEvent)
 	worker.PostgresSnowplowEventBus = make(chan *SnowplowEvent)
-	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 500)
-	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 500)
+	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 300)
+	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
@@ -325,151 +327,69 @@ func (worker *Worker) Writer(driver string) {
 				snowplowTmap := redshift.Connection.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
 				adjustTmap := redshift.Connection.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
 
-				snowplowInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values (%s) ;", "atomic", "events", strings.Join(GetColumns(snowplowTmap)[2:], "\", \""), strings.Join(makeRange(1, len(GetColumns(snowplowTmap)[2:])), (", ")))
-				// snowplowCopy := pq.CopyInSchema("atomic", "events", strings.Join(GetColumns(snowplowTmap), " "))
-				// log.Println(snowplowInsert)
-				adjustInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values (%s);", "adjust", "events", strings.Join(GetColumns(adjustTmap)[2:], "\", \""), strings.Join(makeRange(1, len(GetColumns(adjustTmap)[2:])), (", ")))
-				// log.Println(adjustInsert)
-
-				// adjustCopy := pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...)
-				// log.Println(adjustCopy)
-
-				// Create sql template for copy oerpation
-				// txn, err := redshift.Connection.Begin()
-				// if err != nil {
-				// 	log.Fatal(err)
-				// }
-				// snowplowStmt, err := txn.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
-				// if err != nil {
-				// 	log.Printf("snowplowStmt ERROR %s", err)
-				// }
-
-				// adjustStmt, err := redshift.Connection.Prepare(pq.CopyInSchema("adjust", "events", GetColumns(adjustTmap)...))
-				// if err != nil {
-				// 	log.Printf("adjustStmt ERROR %s", err)
-				// }
+				snowplowInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" ( \"%s\" ) values ", "atomic", "events", strings.Join(GetColumns(snowplowTmap)[2:], "\", \""))
+				adjustInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values ", "adjust", "events", strings.Join(GetColumns(adjustTmap)[2:], "\", \""))
 
 				worker.Stats.RedshiftHealth.Set(true)
 				go func() {
 					defer redshift.Connection.Db.Close()
 					for {
+						var query bytes.Buffer
+						query.WriteString(adjustInsert)
 
-						txn, err := redshift.Connection.Begin()
-						if err != nil {
-							log.Fatal(err)
-						}
-
-						stmt, err := txn.Prepare(adjustInsert)
-						if err != nil {
-							log.Printf("AdjustStmt Prepare ERROR %s", err)
-						}
-
-						// var events []*AdjustEvent
-						event := <-worker.RedshiftAdjustEventBus
-						// events = append(events, event)
-						// As we want to batch get maximum 10 items, 9 items remain to get.
-						remains := 49
-
-					Remaining:
+						remains := 20
 						for i := 0; i < remains; i++ {
-							select {
-							case event = <-worker.RedshiftAdjustEventBus:
-								fmt.Printf("ADJUST exec job %i in batch\n", i)
-								_, err = stmt.Exec(getEventValues(event)...)
-								if err != nil {
-									log.Fatal(err)
-								}
-							default:
-								break Remaining
+							event := <-worker.RedshiftAdjustEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							query.WriteString(stringEvent)
+
+							if err != nil {
+								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+							} else {
+								worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
 							}
+
+							if i == remains-1 {
+								continue
+							}
+
+							query.WriteString(", ")
+
 						}
 
-						// eventvalues := getEventValues(adjustEvent)
-						// fmt.Println("ADJUSTEVENT ", eventvalues)
-
-						// _, err = stmt.Exec(getEventValues(adjustEvent)...)
-						// if err != nil {
-						// 	log.Fatal("adjustEvent Exec ERROR", err, "event", eventvalues)
-						// }
-						_, err = stmt.Exec()
-						// if err != nil {
-						// 	log.Fatal(err)
-						// }
-
-						err = stmt.Close()
-						if err != nil {
-							log.Fatal(err)
-						}
-						fmt.Println("ADJUST commit events\n")
-						err = txn.Commit()
-
-						if err != nil {
-							worker.Stats.RedshiftAdjustFailRing.Add(event, err)
-						} else {
-							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
-						}
+						query.WriteString(";")
 					}
 				}()
 
 				go func() {
 					defer redshift.Connection.Db.Close()
-
 					for {
+						var query bytes.Buffer
+						query.WriteString(snowplowInsert)
 
-						txn, err := redshift.Connection.Begin()
-						if err != nil {
-							log.Fatal(err)
-						}
-
-						stmt, err := txn.Prepare(snowplowInsert)
-						if err != nil {
-							log.Printf("SnowplowStmt Prepare ERROR %s", err)
-						}
-
-						// var events []*AdjustEvent
-						event := <-worker.RedshiftSnowplowEventBus
-						// events = append(events, event)
-						// As we want to batch get maximum 10 items, 9 items remain to get.
-						remains := 49
-
-					Remaining:
+						remains := 20
 						for i := 0; i < remains; i++ {
-							select {
-							case event = <-worker.RedshiftSnowplowEventBus:
-								fmt.Printf("SNOWPLOW exec job %i in batch\n", i)
-								_, err = stmt.Exec(getEventValues(event)...)
-								if err != nil {
-									log.Fatal(err)
-								}
-							default:
-								break Remaining
+							event := <-worker.RedshiftSnowplowEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							query.WriteString(stringEvent)
+
+							if err != nil {
+								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+							} else {
+								worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
 							}
+
+							if i == remains-1 {
+								continue
+							}
+
+							query.WriteString(", ")
+
 						}
 
-						// eventvalues := getEventValues(adjustEvent)
-						// fmt.Println("ADJUSTEVENT ", eventvalues)
-
-						// _, err = stmt.Exec(getEventValues(adjustEvent)...)
-						// if err != nil {
-						// 	log.Fatal("adjustEvent Exec ERROR", err, "event", eventvalues)
-						// }
-						_, err = stmt.Exec()
-						// if err != nil {
-						// 	log.Fatal(err)
-						// }
-
-						err = stmt.Close()
-						if err != nil {
-							log.Fatal(err)
-						}
-						fmt.Println("SNOWPLOW commit events\n")
-
-						err = txn.Commit()
-						if err != nil {
-							worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
-						} else {
-							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
-						}
+						query.WriteString(";")
 					}
 				}()
 			}
@@ -501,6 +421,51 @@ func getEventValues(event interface{}) []interface{} {
 		values = append(values, e.Field(i).Interface())
 	}
 	return values
+}
+
+func getStringEventValues(event interface{}) (string, error) {
+
+	var values bytes.Buffer
+
+	e := reflect.ValueOf(event).Elem()
+	values.WriteString("( ")
+
+	formatString := "'%v', "
+
+	for i := 2; i < e.NumField(); i++ {
+
+		if i == e.NumField()-1 {
+			formatString = "'%v' )"
+		}
+
+		if e.Field(i).Type().String() == "time.Time" {
+			time := e.Field(i).MethodByName("Format").Call([]reflect.Value{reflect.ValueOf(time.RFC3339Nano)})[0]
+			values.WriteString(fmt.Sprintf(formatString, time))
+			continue
+		}
+
+		val, err := driver.DefaultParameterConverter.ConvertValue(e.Field(i).Interface())
+
+		if err != nil {
+			return "", err
+		}
+
+		if val == nil {
+			values.WriteString(fmt.Sprintf("%v, ", "NULL"))
+			continue
+
+			if i == e.NumField()-1 {
+				values.WriteString(fmt.Sprintf("%v )", "NULL"))
+				continue
+			}
+
+		}
+
+		values.WriteString(fmt.Sprintf(formatString, val))
+
+	}
+
+	return values.String(), nil
 }
 
 func TypeConverter(val interface{}) (newval interface{}) {
