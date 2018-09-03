@@ -338,8 +338,10 @@ func (worker *Worker) Writer(driver string) {
 						query.WriteString(adjustInsert)
 
 						remains := 5
-						for i := 0; i < remains; i++ {
-							event := <-worker.RedshiftAdjustEventBus
+						i := 0
+						for event := range worker.RedshiftAdjustEventBus {
+							i++
+							// event := <-worker.RedshiftAdjustEventBus
 							stringEvent, err := getStringEventValues(event)
 
 							if err != nil {
@@ -351,14 +353,14 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+								fmt.Println("ERROR ", stringEvent)
 								break
 							}
 							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
 
-							if i == remains-1 {
-								continue
+							if i == remains {
+								break
 							}
-
 							query.WriteString(", ")
 
 						}
@@ -368,6 +370,7 @@ func (worker *Worker) Writer(driver string) {
 
 						if err != nil {
 							worker.Stats.RedshiftAdjustFailRing.Add(&AdjustEvent{}, err)
+							// fmt.Println("ERROR ", err, " ", query.String())
 						} else {
 							worker.Stats.RedshiftAdjustSuccessRing.Add(&AdjustEvent{}, err)
 						}
@@ -379,10 +382,12 @@ func (worker *Worker) Writer(driver string) {
 					for {
 						var query bytes.Buffer
 						query.WriteString(snowplowInsert)
-
-						remains := 20
-						for i := 0; i < remains; i++ {
-							event := <-worker.RedshiftSnowplowEventBus
+						i := 0
+						remains := 50
+						for event := range worker.RedshiftSnowplowEventBus {
+							i++
+							// for i := 0; i < remains; i++ {
+							// event := <-worker.RedshiftSnowplowEventBus
 							stringEvent, err := getStringEventValues(event)
 
 							if err != nil {
@@ -398,12 +403,10 @@ func (worker *Worker) Writer(driver string) {
 							}
 							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
 
-							if i == remains-1 {
-								continue
+							if i == remains {
+								break
 							}
-
 							query.WriteString(", ")
-
 						}
 
 						query.WriteString(";")
@@ -424,7 +427,7 @@ func (worker *Worker) Writer(driver string) {
 	}
 
 	// worker.Stats.PostgresHealth.Set(false)
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 }
 
 func (worker *Worker) Killer() {
@@ -462,6 +465,12 @@ func getStringEventValues(event interface{}) (string, error) {
 		if i == e.NumField()-1 {
 			formatString = "'%v' )"
 		}
+		// fmt.Println(e.Field(i).Type().String())
+		if e.Field(i).Type().String() == "silvia.NullTime" {
+			time := e.Field(i).Field(0).MethodByName("Format").Call([]reflect.Value{reflect.ValueOf(time.RFC3339Nano)})[0]
+			values.WriteString(fmt.Sprintf(formatString, time))
+			continue
+		}
 
 		if e.Field(i).Type().String() == "time.Time" {
 			time := e.Field(i).MethodByName("Format").Call([]reflect.Value{reflect.ValueOf(time.RFC3339Nano)})[0]
@@ -476,14 +485,13 @@ func getStringEventValues(event interface{}) (string, error) {
 		}
 
 		if val == nil {
-			values.WriteString(fmt.Sprintf("%v, ", "NULL"))
-			continue
-
 			if i == e.NumField()-1 {
 				values.WriteString(fmt.Sprintf("%v )", "NULL"))
 				continue
 			}
 
+			values.WriteString(fmt.Sprintf("%v, ", "NULL"))
+			continue
 		}
 
 		values.WriteString(fmt.Sprintf(formatString, val))
