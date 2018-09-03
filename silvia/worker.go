@@ -342,13 +342,13 @@ func (worker *Worker) Writer(driver string) {
 							event := <-worker.RedshiftAdjustEventBus
 							stringEvent, err := getStringEventValues(event)
 
-							query.WriteString(stringEvent)
+							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
-							} else {
-								worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
+								break
 							}
+							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
 
 							if i == remains-1 {
 								continue
@@ -357,8 +357,14 @@ func (worker *Worker) Writer(driver string) {
 							query.WriteString(", ")
 
 						}
-
 						query.WriteString(";")
+						_, err = redshift.Connection.Exec(query.String())
+
+						if err != nil {
+							worker.Stats.RedshiftAdjustFailRing.Add(&AdjustEvent{}, err)
+						} else {
+							worker.Stats.RedshiftAdjustSuccessRing.Add(&AdjustEvent{}, err)
+						}
 					}
 				}()
 
@@ -373,13 +379,13 @@ func (worker *Worker) Writer(driver string) {
 							event := <-worker.RedshiftSnowplowEventBus
 							stringEvent, err := getStringEventValues(event)
 
-							query.WriteString(stringEvent)
+							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
-							} else {
-								worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
+								break
 							}
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
 
 							if i == remains-1 {
 								continue
@@ -388,8 +394,14 @@ func (worker *Worker) Writer(driver string) {
 							query.WriteString(", ")
 
 						}
-
 						query.WriteString(";")
+						_, err = redshift.Connection.Exec(query.String())
+
+						if err != nil {
+							worker.Stats.RedshiftSnowplowFailRing.Add(&SnowplowEvent{}, err)
+						} else {
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(&SnowplowEvent{}, err)
+						}
 					}
 				}()
 			}
