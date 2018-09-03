@@ -159,7 +159,7 @@ func (worker *Worker) Load() error {
 	worker.SnowplowRequestBus = make(chan []byte)
 	worker.PostgresAdjustEventBus = make(chan *AdjustEvent)
 	worker.PostgresSnowplowEventBus = make(chan *SnowplowEvent)
-	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 300)
+	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 50)
 	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
 	port, err := strconv.Atoi(worker.Config.Port)
@@ -337,7 +337,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(adjustInsert)
 
-						remains := 20
+						remains := 5
 						for i := 0; i < remains; i++ {
 							event := <-worker.RedshiftAdjustEventBus
 							stringEvent, err := getStringEventValues(event)
