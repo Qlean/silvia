@@ -10,6 +10,8 @@ WORKDIR /app
 RUN apt-get update -qq && \
     apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential
 
+RUN curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > /app/GeoLiteCity.dat
+
 COPY Gopkg.* $SRC/
 COPY cmd/ $SRC/cmd/
 COPY silvia/ $SRC/silvia/
@@ -18,7 +20,6 @@ RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/down
     chmod +x /usr/local/bin/dep && \
     cd $SRC && \
     dep ensure -vendor-only && rm /usr/local/bin/dep &&\
-    curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > /app/GeoLiteCity.dat && \
     cd ./silvia && \
     ln -s /app/GeoLiteCity.dat GeoLiteCity.dat && \
     go test
