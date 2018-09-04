@@ -19,7 +19,8 @@ func main() {
 
 	go worker.Generator()
 	go worker.Transformer()
-	go worker.Writer()
+	go worker.Writer("postgres")
+	go worker.Writer("redshift")
 	go worker.Killer()
 
 	log.Println("Server running on port:", worker.Config.Port)

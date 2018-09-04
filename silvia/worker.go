@@ -1,12 +1,16 @@
 package silvia
 
 import (
+	"bytes"
+	"database/sql/driver"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -112,7 +116,7 @@ func (worker *Worker) Load() error {
 	}
 
 	consulConfig := &consul.Config{
-		Address:    "127.0.0.1:8500",
+		Address:    "consul.service.consul:80",
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
 	}
@@ -155,8 +159,8 @@ func (worker *Worker) Load() error {
 	worker.SnowplowRequestBus = make(chan []byte)
 	worker.PostgresAdjustEventBus = make(chan *AdjustEvent)
 	worker.PostgresSnowplowEventBus = make(chan *SnowplowEvent)
-	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent)
-	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent)
+	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 50)
+	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
@@ -255,91 +259,175 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
-				worker.PostgresSnowplowEventBus <- snowplowEvent
-				worker.RedshiftSnowplowEventBus <- snowplowEvent
+				if worker.Stats.PostgresHealth.Get() {
+					worker.PostgresSnowplowEventBus <- snowplowEvent
+				}
+				if worker.Stats.RedshiftHealth.Get() {
+					worker.RedshiftSnowplowEventBus <- snowplowEvent
+				}
 			}
 		}
 	}()
 }
 
-func (worker *Worker) Writer() {
+func (worker *Worker) Writer(driver string) {
 
-	postgres := &Postgres{}
-	redshift := &Redshift{}
+	switch driver {
 
-	if worker.Config.PostgresEnabled == "true" {
+	case "postgres":
 
-		err := postgres.Connect(worker.Config)
-		if err != nil {
-			log.Println("Can't connect to PostgreSQL! Retry after 5s")
-		} else {
-			worker.Stats.PostgresHealth.Set(true)
-			go func() {
-				defer postgres.Connection.Db.Close()
-				for {
-					adjustEvent := <-worker.PostgresAdjustEventBus
-					err := postgres.Connection.Insert(adjustEvent)
-					if err != nil {
-						worker.Stats.PostgresAdjustFailRing.Add(adjustEvent, err)
-					} else {
-						worker.Stats.PostgresAdjustSuccessRing.Add(adjustEvent, err)
+		if worker.Config.PostgresEnabled == "true" {
+
+			postgres := &Postgres{}
+			err := postgres.Connect(worker.Config)
+
+			if err != nil {
+				log.Println("Can't connect to PostgreSQL! Retry after 5s")
+			} else {
+
+				worker.Stats.PostgresHealth.Set(true)
+				go func() {
+					defer postgres.Connection.Db.Close()
+					for {
+						adjustEvent := <-worker.PostgresAdjustEventBus
+						err := postgres.Connection.Insert(adjustEvent)
+						if err != nil {
+							worker.Stats.PostgresAdjustFailRing.Add(adjustEvent, err)
+						} else {
+							worker.Stats.PostgresAdjustSuccessRing.Add(adjustEvent, err)
+						}
 					}
-				}
-			}()
+				}()
 
-			go func() {
-				defer postgres.Connection.Db.Close()
-				for {
-					snowplowEvent := <-worker.PostgresSnowplowEventBus
-					err := postgres.Connection.Insert(snowplowEvent)
-					if err != nil {
-						worker.Stats.PostgresSnowplowFailRing.Add(snowplowEvent, err)
-					} else {
-						worker.Stats.PostgresSnowplowSuccessRing.Add(snowplowEvent, err)
+				go func() {
+					defer postgres.Connection.Db.Close()
+					for {
+						snowplowEvent := <-worker.PostgresSnowplowEventBus
+						err := postgres.Connection.Insert(snowplowEvent)
+						if err != nil {
+							worker.Stats.PostgresSnowplowFailRing.Add(snowplowEvent, err)
+						} else {
+							worker.Stats.PostgresSnowplowSuccessRing.Add(snowplowEvent, err)
+						}
 					}
-				}
-			}()
+				}()
+			}
 		}
-	}
+	case "redshift":
 
-	if worker.Config.RedshiftEnabled == "true" {
+		redshift := &Redshift{}
 
-		err := redshift.Connect(worker.Config)
-		if err != nil {
-			log.Println("Can't connect to PostgreSQL! Retry after 5s")
-		} else {
-			worker.Stats.RedshiftHealth.Set(true)
-			go func() {
-				defer redshift.Connection.Db.Close()
-				for {
-					adjustEvent := <-worker.RedshiftAdjustEventBus
-					err := redshift.Connection.Insert(adjustEvent)
-					if err != nil {
-						worker.Stats.RedshiftAdjustFailRing.Add(adjustEvent, err)
-					} else {
-						worker.Stats.RedshiftAdjustSuccessRing.Add(adjustEvent, err)
+		if worker.Config.RedshiftEnabled == "true" {
+			err := redshift.Connect(worker.Config)
+			if err != nil {
+				log.Println("Can't connect to Redshift! Retry after 5s")
+			} else {
+
+				// Create tablemaps for adjust and atomic
+				snowplowTmap := redshift.Connection.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
+				adjustTmap := redshift.Connection.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
+
+				snowplowInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" ( \"%s\" ) values ", "atomic", "events", strings.Join(GetColumns(snowplowTmap)[2:], "\", \""))
+				adjustInsert := fmt.Sprintf("INSERT INTO \"%s\".\"%s\" (\"%s\") values ", "adjust", "events", strings.Join(GetColumns(adjustTmap)[2:], "\", \""))
+
+				worker.Stats.RedshiftHealth.Set(true)
+				go func() {
+					defer redshift.Connection.Db.Close()
+					for {
+						var query bytes.Buffer
+						query.WriteString(adjustInsert)
+
+						remains := 5
+						i := 0
+						for event := range worker.RedshiftAdjustEventBus {
+							i++
+							// event := <-worker.RedshiftAdjustEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							if err != nil {
+								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+								continue
+							}
+
+							_, err = query.WriteString(stringEvent)
+
+							if err != nil {
+								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+								fmt.Println("ERROR ", stringEvent)
+								break
+							}
+							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
+
+							if i == remains {
+								break
+							}
+							query.WriteString(", ")
+
+						}
+
+						query.WriteString(";")
+						_, err = redshift.Connection.Exec(query.String())
+
+						if err != nil {
+							worker.Stats.RedshiftAdjustFailRing.Add(&AdjustEvent{}, err)
+							// fmt.Println("ERROR ", err, " ", query.String())
+						} else {
+							worker.Stats.RedshiftAdjustSuccessRing.Add(&AdjustEvent{}, err)
+						}
 					}
-				}
-			}()
+				}()
 
-			go func() {
-				defer redshift.Connection.Db.Close()
-				for {
-					snowplowEvent := <-worker.RedshiftSnowplowEventBus
-					err := redshift.Connection.Insert(snowplowEvent)
-					if err != nil {
-						worker.Stats.RedshiftSnowplowFailRing.Add(snowplowEvent, err)
-					} else {
-						worker.Stats.RedshiftSnowplowSuccessRing.Add(snowplowEvent, err)
+				go func() {
+					defer redshift.Connection.Db.Close()
+					for {
+						var query bytes.Buffer
+						query.WriteString(snowplowInsert)
+						i := 0
+						remains := 50
+						for event := range worker.RedshiftSnowplowEventBus {
+							i++
+							// for i := 0; i < remains; i++ {
+							// event := <-worker.RedshiftSnowplowEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							if err != nil {
+								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								continue
+							}
+
+							_, err = query.WriteString(stringEvent)
+
+							if err != nil {
+								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								break
+							}
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
+
+							if i == remains {
+								break
+							}
+							query.WriteString(", ")
+						}
+
+						query.WriteString(";")
+
+						_, err = redshift.Connection.Exec(query.String())
+
+						if err != nil {
+							worker.Stats.RedshiftSnowplowFailRing.Add(&SnowplowEvent{}, err)
+						} else {
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(&SnowplowEvent{}, err)
+						}
 					}
-				}
-			}()
+				}()
+			}
+
 		}
 
 	}
 
 	// worker.Stats.PostgresHealth.Set(false)
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 }
 
 func (worker *Worker) Killer() {
@@ -348,4 +436,81 @@ func (worker *Worker) Killer() {
 	<-signalCh
 	worker.ConsulAgent.ServiceDeregister(worker.ConsulServiceID)
 	os.Exit(0)
+}
+
+func getEventValues(event interface{}) []interface{} {
+	var values []interface{}
+	e := reflect.ValueOf(event).Elem()
+	for i := 2; i < e.NumField(); i++ {
+		// if strings.Contains(e.Type().Field(i).Type.String(), "sql.") {
+		// 	values = append(values, e.Field(i).Field(0).Interface())
+		// 	continue
+		// }
+		values = append(values, e.Field(i).Interface())
+	}
+	return values
+}
+
+func getStringEventValues(event interface{}) (string, error) {
+
+	var values bytes.Buffer
+
+	e := reflect.ValueOf(event).Elem()
+	values.WriteString("( ")
+
+	formatString := "'%v', "
+
+	for i := 2; i < e.NumField(); i++ {
+
+		if i == e.NumField()-1 {
+			formatString = "'%v' )"
+		}
+		// fmt.Println(e.Field(i).Type().String())
+		if e.Field(i).Type().String() == "silvia.NullTime" {
+			time := e.Field(i).Field(0).MethodByName("Format").Call([]reflect.Value{reflect.ValueOf(time.RFC3339Nano)})[0]
+			values.WriteString(fmt.Sprintf(formatString, time))
+			continue
+		}
+
+		if e.Field(i).Type().String() == "time.Time" {
+			time := e.Field(i).MethodByName("Format").Call([]reflect.Value{reflect.ValueOf(time.RFC3339Nano)})[0]
+			values.WriteString(fmt.Sprintf(formatString, time))
+			continue
+		}
+
+		val, err := driver.DefaultParameterConverter.ConvertValue(e.Field(i).Interface())
+
+		if err != nil {
+			return "", err
+		}
+
+		if val == nil {
+			if i == e.NumField()-1 {
+				values.WriteString(fmt.Sprintf("%v )", "NULL"))
+				continue
+			}
+
+			values.WriteString(fmt.Sprintf("%v, ", "NULL"))
+			continue
+		}
+
+		values.WriteString(fmt.Sprintf(formatString, val))
+
+	}
+
+	return values.String(), nil
+}
+
+func TypeConverter(val interface{}) (newval interface{}) {
+	// ToDb converts val to another type. Called before INSERT/UPDATE operations
+	newval = val
+	return newval
+}
+
+func makeRange(min, max int) []string {
+	a := make([]string, max-min+1)
+	for i := range a {
+		a[i] = "$" + strconv.Itoa(min+i)
+	}
+	return a
 }

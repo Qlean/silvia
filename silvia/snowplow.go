@@ -203,21 +203,29 @@ func (timestamp *SnowplowTimestamp) UnmarshalJSON(b []byte) (err error) {
 }
 
 func (res *ScreenResolution) UnmarshalJSON(b []byte) (err error) {
+
 	if b[0] == '"' && b[len(b)-1] == '"' {
 		b = b[1 : len(b)-1]
 	}
+
 	s := strings.Split(string(b), "x")
-	res.Width, err = strconv.Atoi(s[0])
-	if err != nil {
-		tempWidth, _ := strconv.ParseFloat(s[0], 64)
-		res.Height = int(tempWidth)
+
+	if res.Width, err = strconv.Atoi(s[0]); err != nil {
+		if tempWidth, err := strconv.ParseFloat(s[0], 64); err != nil {
+			return err
+		} else {
+			res.Width = int(tempWidth)
+		}
 	}
-	res.Height, err = strconv.Atoi(s[1])
-	if err != nil {
-		tempHeight, _ := strconv.ParseFloat(s[1], 64)
-		res.Height = int(tempHeight)
+
+	if res.Height, err = strconv.Atoi(s[1]); err != nil {
+		if tempHeight, err := strconv.ParseFloat(s[1], 64); err != nil {
+			return err
+		} else {
+			res.Height = int(tempHeight)
+		}
 	}
-	return
+	return nil
 }
 
 func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
@@ -238,7 +246,7 @@ func (event *SnowplowEvent) Transform(request []byte, geo *geoip.GeoIP) error {
 
 	// Binding first level nginx fields
 	checkStringForNull(snowplowRequest.IPAddress, &event.UserIP)
-	event.CollectorTstamp = time.Now()
+	event.CollectorTstamp = time.Now().UTC()
 	// checkStringForNull(snowplowRequest.Referer, &event.PageReferrer)
 	checkStringForNull(snowplowRequest.Useragent, &event.Useragent)
 

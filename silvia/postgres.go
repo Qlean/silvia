@@ -13,21 +13,42 @@ type Postgres struct {
 }
 
 type Redshift struct {
-	Connection *gorp.DbMap
+	Connection   *gorp.DbMap
+	snowplowTmap *gorp.TableMap
+	adjustTmap   *gorp.TableMap
 }
 
 func (redshift *Redshift) Connect(config *Config) error {
+
 	db, err := sql.Open("postgres", config.RedshiftConnect)
 	if err != nil {
 		return err
 	}
 
+	// snowplowTmap.Columns.Columnname
+	// db.Prepare(pq.CopyInSchema("snowplow", "events", GetColumns(snowplowTmap)...))
+
+	// stmt, err := db.Prepare(pq.CopyIn("users", "name", "age"))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
-	dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events").SetKeys(true, "Id")
-	dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events").SetKeys(true, "Id")
+
+	// snowplowTmap := dbmap.AddTableWithNameAndSchema(SnowplowEvent{}, "atomic", "events")
+	// adjustTmap := dbmap.AddTableWithNameAndSchema(AdjustEvent{}, "adjust", "events")
 
 	redshift.Connection = dbmap
 	return nil
+}
+
+// GetColumns fetches column names from gorp tablemap
+func GetColumns(tmap *gorp.TableMap) (columns []string) {
+
+	for index, _ := range tmap.Columns {
+		columns = append(columns, tmap.Columns[index].ColumnName)
+	}
+	return columns
 }
 
 func (postgres *Postgres) Connect(config *Config) error {

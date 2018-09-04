@@ -4,7 +4,7 @@ create table if not exists atomic.events
 (
 	app_id varchar(32) encode bytedict,
 	platform varchar(32),
-	etl_tstamp timestamp,
+	etl_tstamp timestamp default sysdate not null,
 	collector_tstamp timestamp not null,
 	dvce_tstamp timestamp,
 	event varchar(128),
