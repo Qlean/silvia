@@ -116,7 +116,7 @@ func (worker *Worker) Load() error {
 	}
 
 	consulConfig := &consul.Config{
-		Address:    "consul.service.consul:80",
+		Address:    "127.0.0.1:8500",
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
 	}
