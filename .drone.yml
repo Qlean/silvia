@@ -1,0 +1,76 @@
+clone:
+  git:
+    image: plugins/git
+    depth: 1
+
+pipeline:
+  build:
+    group: build
+    image: docker:18.03.1-ce
+    commands:
+      - docker build -t ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT} .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    when:
+      event:
+        exclude: [deployment]
+
+  tests:
+    group: tests
+    image: ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT}
+    commands:
+      - cd /go/src/github.com/Qlean/silvia/silvia/
+      - go test
+    when:
+      event:
+        exclude: [deployment]
+
+  docker-push-staging:
+    group: docker-push
+    image: docker:18.03.1-ce
+    commands:
+      - docker login harbor.service.dc3.consul -u $${DOCKER_USERNAME} -p $${DOCKER_PASSWORD}
+      - docker tag ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT} harbor.service.dc3.consul/staging/${DRONE_REPO_NAME}/${DRONE_BRANCH}:${DRONE_COMMIT}
+      - docker push harbor.service.dc3.consul/staging/${DRONE_REPO_NAME}/${DRONE_BRANCH}:${DRONE_COMMIT}
+    secrets: [ docker_username, docker_password ]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    when:
+      event:
+        exclude: [deployment, pull_request]
+      branch:
+        exclude: master
+
+  docker-push-production:
+    group: docker-push
+    image: docker:18.03.1-ce
+    commands:
+      - docker login harbor.service.dc3.consul -u $${DOCKER_USERNAME} -p $${DOCKER_PASSWORD}
+      - docker tag ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT} harbor.service.dc3.consul/production/${DRONE_REPO_NAME}/${DRONE_BRANCH}:${DRONE_COMMIT}
+      - docker push harbor.service.dc3.consul/production/${DRONE_REPO_NAME}/${DRONE_BRANCH}:${DRONE_COMMIT}
+    secrets: [ docker_username, docker_password ]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    when:
+      event:
+        exclude: [deployment, pull_request]
+      branch: master
+
+  slack:
+    image: plugins/slack
+    channel: drone-ci
+    secrets: [ slack_webhook ]
+    when:
+      status: [ success, failure ]
+      event:
+        exclude: deployment
+    template: >
+      Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME}>
+       {{#success build.status}}
+       <${DRONE_BUILD_LINK}|Build ${DRONE_BUILD_NUMBER} SUCCEEDED.> Good job.
+       {{else}}
+       <${DRONE_BUILD_LINK}|Build ${DRONE_BUILD_NUMBER} FAILED.> Fix me please.
+       {{/success}}
+       Author: <https://github.com/${DRONE_COMMIT_AUTHOR}|${DRONE_COMMIT_AUTHOR}>
+       Branch: <${DRONE_REPO_LINK}/tree/${DRONE_COMMIT_BRANCH}|${DRONE_COMMIT_BRANCH}>
+      {{#equal "${DRONE_BUILD_EVENT}" "pull_request"}}Pull Request: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_MESSAGE}>{{/equal}}{{#equal "${DRONE_BUILD_EVENT}" "push"}}Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>{{/equal}}{{#equal "${DRONE_BUILD_EVENT}" "tag"}}Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>{{/equal}}
