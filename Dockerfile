@@ -22,10 +22,7 @@ RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/down
     dep ensure -vendor-only && rm /usr/local/bin/dep &&\
     cd ./silvia && \
     ln -s /app/GeoLiteCity.dat GeoLiteCity.dat && \
-    go test
-
-
-RUN cd $SRC && \
+    cd $SRC && \
     go build  -o /app/silvia ./cmd && \
     chmod +x /app/silvia && \
     rm -rf $GOPATH

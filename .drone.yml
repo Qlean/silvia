@@ -15,6 +15,15 @@ pipeline:
       event:
         exclude: [deployment]
 
+  tests:
+    group: tests
+    image: ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT}
+    commands:
+      - go test
+    when:
+      event:
+        exclude: [deployment]
+
   docker-push-staging:
     group: docker-push
     image: docker:18.03.1-ce
