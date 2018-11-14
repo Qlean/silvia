@@ -24,8 +24,7 @@ RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/down
     ln -s /app/GeoLiteCity.dat GeoLiteCity.dat && \
     cd $SRC && \
     go build  -o /app/silvia ./cmd && \
-    chmod +x /app/silvia && \
-    rm -rf $GOPATH
+    chmod +x /app/silvia
 
 # # FROM scratch
 # # COPY --from=build /go/src/github.com/Qlean/silvia/bin/silvia /
