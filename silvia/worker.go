@@ -337,7 +337,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(adjustInsert)
 
-						remains := 5
+						remains := 10
 						i := 0
 						for event := range worker.RedshiftAdjustEventBus {
 							i++
@@ -360,6 +360,8 @@ func (worker *Worker) Writer(driver string) {
 
 							if i == remains {
 								break
+								fmt.Println("ERROR ", stringEvent)
+
 							}
 							query.WriteString(", ")
 
@@ -386,8 +388,6 @@ func (worker *Worker) Writer(driver string) {
 						remains := 50
 						for event := range worker.RedshiftSnowplowEventBus {
 							i++
-							// for i := 0; i < remains; i++ {
-							// event := <-worker.RedshiftSnowplowEventBus
 							stringEvent, err := getStringEventValues(event)
 
 							if err != nil {
@@ -411,13 +411,13 @@ func (worker *Worker) Writer(driver string) {
 
 						query.WriteString(";")
 
-						_, err = redshift.Connection.Exec(query.String())
+						// _, err = redshift.Connection.Exec(query.String())
 
-						if err != nil {
-							worker.Stats.RedshiftSnowplowFailRing.Add(&SnowplowEvent{}, err)
-						} else {
-							worker.Stats.RedshiftSnowplowSuccessRing.Add(&SnowplowEvent{}, err)
-						}
+						// if err != nil {
+						// 	worker.Stats.RedshiftSnowplowFailRing.Add(&SnowplowEvent{}, err)
+						// } else {
+						// 	worker.Stats.RedshiftSnowplowSuccessRing.Add(&SnowplowEvent{}, err)
+						// }
 					}
 				}()
 			}
