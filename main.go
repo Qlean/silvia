@@ -18,12 +18,11 @@ func main() {
 
 	http.Handle("/v1/status", worker.ApiHandler(silvia.StatusApi))
 	http.Handle("/v1/ring", worker.ApiHandler(silvia.RingApi))
-
-	go func() {
-		log.Println(http.ListenAndServe(":6060", nil))
-	}()
-
-	log.Fatal(server.ListenAndServe())
+	http.Handle("/debug/pprof/", pprof.Index)
+	http.Handle("/debug/pprof/cmdline", pprof.Cmdline)
+	http.Handle("/debug/pprof/profile", pprof.Profile)
+	http.Handle("/debug/pprof/symbol", pprof.Symbol)
+	http.Handle("/debug/pprof/trace", pprof.Trace)
 
 	go worker.Generator()
 	go worker.Transformer()
