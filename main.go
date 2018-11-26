@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/Qlean/silvia/silvia"
-
-	_ "net/http/pprof"
 )
 
 func main() {
@@ -15,15 +13,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// http.Handle("/v1/status", worker.ApiHandler(silvia.StatusApi))
-	// http.Handle("/v1/ring", worker.ApiHandler(silvia.RingApi))
-	// http.Handle("/debug/pprof/", pprof.Index)
-	// http.Handle("/debug/pprof/cmdline", pprof.Cmdline)
-	// http.Handle("/debug/pprof/profile", pprof.Profile)
-	// http.Handle("/debug/pprof/symbol", pprof.Symbol)
-
-	// http.Handle("/debug/pprof/trace", pprof.Trace)
 
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
