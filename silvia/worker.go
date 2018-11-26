@@ -17,7 +17,6 @@ import (
 
 	"github.com/abh/geoip"
 	consul "github.com/hashicorp/consul/api"
-	"github.com/satori/go.uuid"
 )
 
 type (
@@ -116,7 +115,7 @@ func (worker *Worker) Load() error {
 	}
 
 	consulConfig := &consul.Config{
-		Address:    "127.0.0.1:8500",
+		Address:    "consul.service.consul:80",
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
 	}
@@ -162,48 +161,48 @@ func (worker *Worker) Load() error {
 	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 50)
 	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
-	port, err := strconv.Atoi(worker.Config.Port)
+	// port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
 		return nil
 	}
 
-	worker.ConsulServiceID = uuid.NewV4().String()
+	// worker.ConsulServiceID = uuid.NewV4().String()
 
-	checks := consul.AgentServiceChecks{
-		&consul.AgentServiceCheck{
-			TTL: "10s",
-		},
-		&consul.AgentServiceCheck{
-			HTTP:     "http://localhost:" + worker.Config.Port + "/v1/status",
-			Interval: "10s",
-			Timeout:  "1s",
-		},
-	}
+	// checks := consul.AgentServiceChecks{
+	// 	&consul.AgentServiceCheck{
+	// 		TTL: "10s",
+	// 	},
+	// 	&consul.AgentServiceCheck{
+	// 		HTTP:     "http://localhost:" + worker.Config.Port + "/v1/status",
+	// 		Interval: "10s",
+	// 		Timeout:  "1s",
+	// 	},
+	// }
 
-	service := &consul.AgentServiceRegistration{
-		ID:     worker.ConsulServiceID,
-		Name:   "silvia",
-		Port:   port,
-		Checks: checks,
-	}
+	// service := &consul.AgentServiceRegistration{
+	// 	ID:     worker.ConsulServiceID,
+	// 	Name:   "silvia",
+	// 	Port:   port,
+	// 	Checks: checks,
+	// }
 
 	worker.ConsulAgent = client.Agent()
-	err = worker.ConsulAgent.ServiceRegister(service)
-	if err != nil {
-		return err
-	}
+	// err = worker.ConsulAgent.ServiceRegister(service)
+	// if err != nil {
+	// 	return err
+	// }
 
-	go func() {
-		for {
-			<-time.After(8 * time.Second)
-			err = worker.ConsulAgent.PassTTL("service:"+worker.ConsulServiceID+":1", "Internal TTL ping")
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		<-time.After(8 * time.Second)
+	// 		err = worker.ConsulAgent.PassTTL("service:"+worker.ConsulServiceID+":1", "Internal TTL ping")
+	// 		if err != nil {
+	// 			log.Println(err)
+	// 		}
+	// 	}
+	// }()
 
-	log.Println("Service registred with ID:", worker.ConsulServiceID)
+	// log.Println("Service registred with ID:", worker.ConsulServiceID)
 
 	return nil
 }
