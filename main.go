@@ -7,6 +7,8 @@ import (
 	"github.com/Qlean/silvia/silvia"
 )
 
+import _ "net/http/pprof"
+
 func main() {
 	worker := &silvia.Worker{}
 	err := worker.Load()
