@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/Qlean/silvia/silvia"
 
@@ -20,15 +19,10 @@ func main() {
 	http.Handle("/v1/status", worker.ApiHandler(silvia.StatusApi))
 	http.Handle("/v1/ring", worker.ApiHandler(silvia.RingApi))
 
-	server := &http.Server{
-		Addr:         ":8080",
-		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-	}
 	go func() {
-		log.Println(http.ListenAndServe(":9090", nil))
+		log.Println(http.ListenAndServe(":6060", nil))
 	}()
+
 	log.Fatal(server.ListenAndServe())
 
 	go worker.Generator()
