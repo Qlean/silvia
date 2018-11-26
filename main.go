@@ -18,6 +18,7 @@ func main() {
 
 	http.Handle("/v1/status", worker.ApiHandler(silvia.StatusApi))
 	http.Handle("/v1/ring", worker.ApiHandler(silvia.RingApi))
+	http.ListenAndServe(":9090", http.DefaultServeMux)
 
 	go worker.Generator()
 	go worker.Transformer()
