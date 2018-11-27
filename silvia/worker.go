@@ -255,6 +255,7 @@ func (worker *Worker) Transformer() {
 		for {
 			snowplowEvent := &SnowplowEvent{}
 			err := snowplowEvent.Transform(<-worker.SnowplowRequestBus, worker.GeoDB)
+			log.Println(len(worker.SnowplowRequestBus))
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
@@ -409,7 +410,6 @@ func (worker *Worker) Writer(driver string) {
 						}
 
 						query.WriteString(";")
-						log.Println("worker.RedshiftSnowplowEventBus")
 
 						// _, err = redshift.Connection.Exec(query.String())
 
