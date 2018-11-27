@@ -241,12 +241,12 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
 			} else {
-				if worker.Stats.PostgresHealth.Get() {
-					worker.PostgresAdjustEventBus <- adjustEvent
-				}
-				if worker.Stats.RedshiftHealth.Get() {
-					worker.RedshiftAdjustEventBus <- adjustEvent
-				}
+				// if worker.Stats.PostgresHealth.Get() {
+				// 	worker.PostgresAdjustEventBus <- adjustEvent
+				// }
+				// if worker.Stats.RedshiftHealth.Get() {
+				worker.RedshiftAdjustEventBus <- adjustEvent
+				// }
 			}
 		}
 	}()
@@ -259,9 +259,9 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 			} else {
-				if worker.Stats.PostgresHealth.Get() {
-					worker.PostgresSnowplowEventBus <- snowplowEvent
-				}
+				// if worker.Stats.PostgresHealth.Get() {
+				// 	worker.PostgresSnowplowEventBus <- snowplowEvent
+				// }
 				// if worker.Stats.RedshiftHealth.Get() {
 				worker.RedshiftSnowplowEventBus <- snowplowEvent
 				// }
