@@ -261,9 +261,9 @@ func (worker *Worker) Transformer() {
 				if worker.Stats.PostgresHealth.Get() {
 					worker.PostgresSnowplowEventBus <- snowplowEvent
 				}
-				if worker.Stats.RedshiftHealth.Get() {
-					worker.RedshiftSnowplowEventBus <- snowplowEvent
-				}
+				// if worker.Stats.RedshiftHealth.Get() {
+				worker.RedshiftSnowplowEventBus <- snowplowEvent
+				// }
 			}
 		}
 	}()
@@ -409,6 +409,7 @@ func (worker *Worker) Writer(driver string) {
 						}
 
 						query.WriteString(";")
+						log.Println("worker.RedshiftSnowplowEventBus")
 
 						// _, err = redshift.Connection.Exec(query.String())
 
