@@ -3,6 +3,7 @@ package silvia
 import (
 	"bytes"
 	"database/sql/driver"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -104,6 +105,10 @@ func (config *Config) fillFromConsul(client *consul.Client, appName string) erro
 
 	return nil
 }
+func (config *Config) fillFromCli() error {
+	config.Port = strconv.Itoa(*flag.Int("port", 8080, "listen http port"))
+	return nil
+}
 
 func (worker *Worker) Load() error {
 	worker.Config = &Config{}
@@ -126,6 +131,10 @@ func (worker *Worker) Load() error {
 	}
 
 	err = worker.Config.fillFromConsul(client, "silvia")
+	if err != nil {
+		return err
+	}
+	err = worker.Config.fillFromCli()
 	if err != nil {
 		return err
 	}
