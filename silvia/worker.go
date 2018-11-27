@@ -106,7 +106,7 @@ func (config *Config) fillFromConsul(client *consul.Client, appName string) erro
 	return nil
 }
 func (config *Config) fillFromCli() error {
-	config.Port = strconv.Itoa(*flag.Int("port", 8080, "listen http port"))
+	flag.StringVar(&config.Port, "port", "8080", "port config")
 	flag.Parse()
 	return nil
 }
