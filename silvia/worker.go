@@ -411,7 +411,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(adjustInsert)
 
-						remains := 2
+						remains := 1
 						i := 0
 						for event := range worker.AdjustErrorBus {
 							i++
@@ -511,7 +511,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(snowplowInsert)
 
-						remains := 2
+						remains := 1
 						i := 0
 						for event := range worker.SnowplowErrorBus {
 							i++
