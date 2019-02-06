@@ -429,7 +429,6 @@ func (worker *Worker) Writer(driver string) {
 								log.Println(err)
 								break
 							}
-							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
 
 							if i == remains {
 								break
@@ -478,6 +477,7 @@ func (worker *Worker) Writer(driver string) {
 								worker.SnowplowErrorBus <- event
 								break
 							}
+							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
 
 							if i == remains {
 								break
