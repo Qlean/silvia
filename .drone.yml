@@ -9,6 +9,18 @@ pipeline:
     image: docker:18.03.1-ce
     commands:
       - docker build -t ${DRONE_REPO_NAME}-${DRONE_BRANCH}-${DRONE_BUILD_NUMBER}:${DRONE_COMMIT} .
+        --build-arg "BUILD_SOURCE=${DRONE_REPO_LINK}"
+        --build-arg "REPO_NAME=${DRONE_REPO_NAME,,}"
+        --build-arg "REPO_OWNER=${DRONE_REPO_OWNER}"
+        --label "maintainer=${DRONE_COMMIT_AUTHOR}"
+        --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        --label "org.opencontainers.image.version=${DRONE_COMMIT}"
+        --label "org.opencontainers.image.revision=${DRONE_COMMIT}"
+        --label "ru.qlean.drone.build.author=${DRONE_COMMIT_AUTHOR}"
+        --label "ru.qlean.drone.build.number=${DRONE_BUILD_NUMBER}"
+        --label "ru.qlean.drone.build.link=${DRONE_BUILD_LINK}"
+        --label "ru.qlean.drone.build.branch=${DRONE_BRANCH,,}"
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     when:
