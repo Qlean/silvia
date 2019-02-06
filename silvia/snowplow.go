@@ -108,6 +108,9 @@ type (
 		DocCharset       sql.NullString  `db:"doc_charset"`
 		DocWidth         int             `db:"doc_width"`
 		DocHeight        int             `db:"doc_height"`
+		ErrType          sql.NullString  `db:error_type`
+		Error            sql.NullString  `db:error_text`
+		ErrorEvent       sql.NullString  `db:error_event`
 	}
 
 	// request structure
