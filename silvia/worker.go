@@ -164,8 +164,8 @@ func (worker *Worker) Load() error {
 	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 50)
 	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
-	worker.AdjustErrorBus = make(chan *AdjustEvent)
-	worker.SnowplowErrorBus = make(chan *SnowplowEvent)
+	worker.AdjustErrorBus = make(chan *AdjustEvent, 15)
+	worker.SnowplowErrorBus = make(chan *SnowplowEvent, 15)
 
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
@@ -411,7 +411,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(adjustInsert)
 
-						remains := 1
+						remains := 2
 						i := 0
 						for event := range worker.AdjustErrorBus {
 							i++
@@ -508,7 +508,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(snowplowInsert)
 
-						remains := 1
+						remains := 2
 						i := 0
 						for event := range worker.SnowplowErrorBus {
 							i++
