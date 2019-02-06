@@ -10,8 +10,7 @@ WORKDIR /app
 RUN apt-get update -qq && \
     apt-get install -qq -y geoip-bin libgeoip-dev pkg-config build-essential
 
-RUN curl http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz | gunzip > /app/GeoLiteCity.dat
-
+COPY GeoLiteCity.dat /app/
 COPY Gopkg.* $SRC/
 COPY cmd/ $SRC/cmd/
 COPY silvia/ $SRC/silvia/
