@@ -1,4 +1,8 @@
 alter table atomic.events
-  ADD COLUMN error_type varchar(100),
-  ADD COLUMN error_text varchar(65535),
-  ADD COLUMN error_event varchar(65535);
+  ADD error_type varchar(256) default NULL;
+
+alter table atomic.events
+  ADD error_text varchar(65535) default NULL;
+
+alter table atomic.events
+  ADD error_event varchar(65535) default NULL;
