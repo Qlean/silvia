@@ -362,7 +362,7 @@ func (worker *Worker) Writer(driver string) {
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
 								checkStringForNull("GetStringEventValues", &event.ErrType)
-								checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
+								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
 								worker.AdjustErrorBus <- event
 								continue
