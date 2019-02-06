@@ -248,7 +248,7 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
 				checkStringForNull("Transform", &adjustEvent.ErrType)
-				checkStringForNull(strings.TrimSpace(err.Error()), &adjustEvent.Error)
+				checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &adjustEvent.Error)
 				checkStringForNull(fmt.Sprintf("%#v", string(rawEvent)), &adjustEvent.ErrorEvent)
 				worker.AdjustErrorBus <- adjustEvent
 			} else {
@@ -270,7 +270,7 @@ func (worker *Worker) Transformer() {
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
 				checkStringForNull("Transform", &snowplowEvent.ErrType)
-				checkStringForNull(strings.TrimSpace(err.Error()), &snowplowEvent.Error)
+				checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &snowplowEvent.Error)
 				checkStringForNull(fmt.Sprintf("%#v", string(rawEvent)), &snowplowEvent.ErrorEvent)
 				worker.SnowplowErrorBus <- snowplowEvent
 			} else {
@@ -362,7 +362,7 @@ func (worker *Worker) Writer(driver string) {
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
 								checkStringForNull("GetStringEventValues", &event.ErrType)
-								checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+								checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
 								worker.AdjustErrorBus <- event
 								continue
@@ -373,7 +373,7 @@ func (worker *Worker) Writer(driver string) {
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
 								checkStringForNull("WriteString", &event.ErrType)
-								checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+								checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
 								worker.AdjustErrorBus <- event
 								break
@@ -395,7 +395,7 @@ func (worker *Worker) Writer(driver string) {
 							event := &AdjustEvent{}
 
 							checkStringForNull("ExecQuery", &event.ErrType)
-							checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+							checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 							checkStringForNull(fmt.Sprintf("%#v", query.String()), &event.ErrorEvent)
 							worker.AdjustErrorBus <- event
 							fmt.Println("ERROR ", err, " ", query.String())
@@ -464,7 +464,7 @@ func (worker *Worker) Writer(driver string) {
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
 								checkStringForNull("GetStringEventValues", &event.ErrType)
-								checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+								checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
 								worker.SnowplowErrorBus <- event
 								continue
@@ -475,7 +475,7 @@ func (worker *Worker) Writer(driver string) {
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
 								checkStringForNull("WriteString", &event.ErrType)
-								checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+								checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
 								worker.SnowplowErrorBus <- event
 								break
@@ -496,7 +496,7 @@ func (worker *Worker) Writer(driver string) {
 							event := &SnowplowEvent{}
 							worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
 							checkStringForNull("ExecQuery", &event.ErrType)
-							checkStringForNull(strings.TrimSpace(err.Error()), &event.Error)
+							checkStringForNull(strings.Replace(err.Error(), ",", "\\,", -1), &event.Error)
 							checkStringForNull(fmt.Sprintf("%#v", query.String()), &event.ErrorEvent)
 							worker.SnowplowErrorBus <- event
 						} else {
@@ -621,7 +621,7 @@ func getStringEventValues(event interface{}) (string, error) {
 			continue
 		}
 
-		values.WriteString(strings.Replace(fmt.Sprintf(formatString, val), ",", "\\,", -1))
+		values.WriteString(fmt.Sprintf(formatString, val))
 
 	}
 
