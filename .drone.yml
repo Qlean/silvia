@@ -74,3 +74,56 @@ pipeline:
        Author: <https://github.com/${DRONE_COMMIT_AUTHOR}|${DRONE_COMMIT_AUTHOR}>
        Branch: <${DRONE_REPO_LINK}/tree/${DRONE_COMMIT_BRANCH}|${DRONE_COMMIT_BRANCH}>
       {{#equal "${DRONE_BUILD_EVENT}" "pull_request"}}Pull Request: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_MESSAGE}>{{/equal}}{{#equal "${DRONE_BUILD_EVENT}" "push"}}Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>{{/equal}}{{#equal "${DRONE_BUILD_EVENT}" "tag"}}Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>{{/equal}}
+
+  slack_deploy_start:
+    group: slack_deploy_start
+    image: harbor.service.dc3.consul/library/drone-slack/master:a5c6cdfecc3a2675b1bf537232bf8d369e24ae05
+    channel: deploy
+    secrets:
+      - source: slack_webhook_deploy
+        target: slack_webhook
+    when:
+      status: [ success, failure ]
+      event: [ deployment ]
+      branch: master
+    template: >
+      <${DRONE_BUILD_LINK}|Deploy to production> STARTED
+       Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>
+       Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>
+       Triggered_by: {{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}} {{#equal build.event "deployment"}}{{build.triggeredBy}} {{/equal}}
+
+
+  deploy_production:
+    group: deploy_production
+    image: harbor.service.dc3.consul/library/infrastructure/deploy:latest
+    pull: true
+    commands:
+      - cd /infrastructure
+      - /entrypoint.sh deploy ${DRONE_REPO_NAME,,} -e docker_tag=${DRONE_COMMIT} -vv
+    volumes:
+      - /var/lib/cache/infrastructure:/infrastructure
+    secrets: [ consul_token ]
+    when:
+      event: [ deployment ]
+      branch: master
+
+  slack_deploy_finish:
+    group: slack_deploy_finish
+    image: harbor.service.dc3.consul/library/drone-slack/master:a5c6cdfecc3a2675b1bf537232bf8d369e24ae05
+    channel: deploy
+    secrets:
+      - source: slack_webhook_deploy
+        target: slack_webhook
+    when:
+      status: [ success, failure ]
+      event: [ deployment ]
+      branch: master
+    template: >
+       {{#success build.status}}
+        <${DRONE_BUILD_LINK}|Deploy to production> *SUCCEEDED*
+        {{else}}
+        <${DRONE_BUILD_LINK}|Deploy to production> *FAILED*
+        {{/success}}
+        Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>
+        Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>
+        Triggered_by: {{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}} {{#equal build.event "deployment"}}{{build.triggeredBy}} {{/equal}}
