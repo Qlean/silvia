@@ -621,9 +621,7 @@ func getStringEventValues(event interface{}) (string, error) {
 			continue
 		}
 
-		tmpstr := strings.Replace(fmt.Sprintf(formatString, val), "'", "\\'", -1)
-
-		values.WriteString(strings.Replace(fmt.Sprintf(formatString, tmpstr), ",", "\\,", -1))
+		values.WriteString(strings.Replace(fmt.Sprintf(formatString, val), ",", "\\,", -1))
 
 	}
 
