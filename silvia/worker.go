@@ -440,6 +440,7 @@ func (worker *Worker) Writer(driver string) {
 						query.WriteString(";")
 						_, err = redshift.Connection.Exec(query.String())
 						if err != nil {
+							log.Println(query.String())
 							log.Println(err)
 						}
 					}
@@ -536,6 +537,7 @@ func (worker *Worker) Writer(driver string) {
 						query.WriteString(";")
 						_, err = redshift.Connection.Exec(query.String())
 						if err != nil {
+							log.Println(query.String())
 							log.Println(err)
 						}
 					}
