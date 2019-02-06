@@ -72,6 +72,9 @@ type (
 		Eg         sql.NullString `db:"event_group"`
 		Et         sql.NullString `db:"event_token"`
 		En         sql.NullString `db:"event_name"`
+		ErrType    sql.NullString `db:"error_type"`
+		Error      sql.NullString `db:"error_text"`
+		ErrorEvent sql.NullString `db:"error_event"`
 	}
 
 	AdjustRequest struct {

@@ -64,6 +64,8 @@ type (
 		Stats                    *Stats
 		AdjustRequestBus         chan []byte
 		SnowplowRequestBus       chan []byte
+		AdjustErrorBus           chan *AdjustEvent
+		SnowplowErrorBus         chan *SnowplowEvent
 		PostgresAdjustEventBus   chan *AdjustEvent
 		PostgresSnowplowEventBus chan *SnowplowEvent
 		RedshiftAdjustEventBus   chan *AdjustEvent
@@ -162,6 +164,9 @@ func (worker *Worker) Load() error {
 	worker.RedshiftAdjustEventBus = make(chan *AdjustEvent, 50)
 	worker.RedshiftSnowplowEventBus = make(chan *SnowplowEvent, 300)
 
+	worker.AdjustErrorBus = make(chan *AdjustEvent, 15)
+	worker.SnowplowErrorBus = make(chan *SnowplowEvent, 15)
+
 	port, err := strconv.Atoi(worker.Config.Port)
 	if err != nil {
 		return nil
@@ -237,10 +242,15 @@ func (worker *Worker) Generator() {
 func (worker *Worker) Transformer() {
 	go func() {
 		for {
+			rawEvent := <-worker.AdjustRequestBus
 			adjustEvent := &AdjustEvent{}
-			err := adjustEvent.Transform(<-worker.AdjustRequestBus)
+			err := adjustEvent.Transform(rawEvent)
 			if err != nil {
 				worker.Stats.AdjustFailRing.Add(adjustEvent, err)
+				checkStringForNull("Transform", &adjustEvent.ErrType)
+				checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &adjustEvent.Error)
+				checkStringForNull(fmt.Sprintf("%#v", string(rawEvent)), &adjustEvent.ErrorEvent)
+				worker.AdjustErrorBus <- adjustEvent
 			} else {
 				if worker.Stats.PostgresHealth.Get() {
 					worker.PostgresAdjustEventBus <- adjustEvent
@@ -254,10 +264,17 @@ func (worker *Worker) Transformer() {
 
 	go func() {
 		for {
+			rawEvent := <-worker.SnowplowRequestBus
 			snowplowEvent := &SnowplowEvent{}
-			err := snowplowEvent.Transform(<-worker.SnowplowRequestBus, worker.GeoDB)
+			err := snowplowEvent.Transform(rawEvent, worker.GeoDB)
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
+
+				checkStringForNull("error", &snowplowEvent.EventID)
+				checkStringForNull("Transform", &snowplowEvent.ErrType)
+				checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &snowplowEvent.Error)
+				checkStringForNull(fmt.Sprintf("%#v", string(rawEvent)), &snowplowEvent.ErrorEvent)
+				worker.SnowplowErrorBus <- snowplowEvent
 			} else {
 				if worker.Stats.PostgresHealth.Get() {
 					worker.PostgresSnowplowEventBus <- snowplowEvent
@@ -346,6 +363,10 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
+								checkStringForNull("GetStringEventValues", &event.ErrType)
+								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
+								worker.AdjustErrorBus <- event
 								continue
 							}
 
@@ -353,7 +374,10 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftAdjustFailRing.Add(event, err)
-								fmt.Println("ERROR ", stringEvent)
+								checkStringForNull("WriteString", &event.ErrType)
+								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
+								worker.AdjustErrorBus <- event
 								break
 							}
 							worker.Stats.RedshiftAdjustSuccessRing.Add(event, err)
@@ -370,9 +394,58 @@ func (worker *Worker) Writer(driver string) {
 
 						if err != nil {
 							worker.Stats.RedshiftAdjustFailRing.Add(&AdjustEvent{}, err)
-							// fmt.Println("ERROR ", err, " ", query.String())
+							event := &AdjustEvent{}
+
+							checkStringForNull("ExecQuery", &event.ErrType)
+							checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+							checkStringForNull(fmt.Sprintf("%#v", query.String()), &event.ErrorEvent)
+							worker.AdjustErrorBus <- event
+							fmt.Println("ERROR ", err, " ", query.String())
 						} else {
 							worker.Stats.RedshiftAdjustSuccessRing.Add(&AdjustEvent{}, err)
+						}
+					}
+				}()
+
+				go func() {
+					defer redshift.Connection.Db.Close()
+					for {
+						var query bytes.Buffer
+						query.WriteString(adjustInsert)
+
+						remains := 1
+						i := 0
+						for event := range worker.AdjustErrorBus {
+							i++
+							// event := <-worker.RedshiftAdjustEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							if err != nil {
+								log.Println(event)
+								log.Println(err)
+								continue
+							}
+
+							_, err = query.WriteString(stringEvent)
+
+							if err != nil {
+								log.Println(stringEvent)
+								log.Println(err)
+								break
+							}
+
+							if i == remains {
+								break
+							}
+							query.WriteString(", ")
+
+						}
+
+						query.WriteString(";")
+						_, err = redshift.Connection.Exec(query.String())
+						if err != nil {
+							log.Println(query.String())
+							log.Println(err)
 						}
 					}
 				}()
@@ -392,6 +465,11 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								checkStringForNull("error", &event.EventID)
+								checkStringForNull("GetStringEventValues", &event.ErrType)
+								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
+								worker.SnowplowErrorBus <- event
 								continue
 							}
 
@@ -399,6 +477,11 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								checkStringForNull("error", &event.EventID)
+								checkStringForNull("WriteString", &event.ErrType)
+								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
+								worker.SnowplowErrorBus <- event
 								break
 							}
 							worker.Stats.RedshiftSnowplowSuccessRing.Add(event, err)
@@ -414,9 +497,59 @@ func (worker *Worker) Writer(driver string) {
 						_, err = redshift.Connection.Exec(query.String())
 
 						if err != nil {
-							worker.Stats.RedshiftSnowplowFailRing.Add(&SnowplowEvent{}, err)
+							event := &SnowplowEvent{}
+							worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+
+							checkStringForNull("error", &event.EventID)
+							checkStringForNull("ExecQuery", &event.ErrType)
+							checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
+							checkStringForNull(fmt.Sprintf("%#v", query.String()), &event.ErrorEvent)
+							worker.SnowplowErrorBus <- event
 						} else {
 							worker.Stats.RedshiftSnowplowSuccessRing.Add(&SnowplowEvent{}, err)
+						}
+					}
+				}()
+
+				go func() {
+					defer redshift.Connection.Db.Close()
+					for {
+						var query bytes.Buffer
+						query.WriteString(snowplowInsert)
+
+						remains := 1
+						i := 0
+						for event := range worker.SnowplowErrorBus {
+							i++
+							// event := <-worker.RedshiftAdjustEventBus
+							stringEvent, err := getStringEventValues(event)
+
+							if err != nil {
+								log.Println(event)
+								log.Println(err)
+								continue
+							}
+
+							_, err = query.WriteString(stringEvent)
+
+							if err != nil {
+								log.Println(stringEvent)
+								log.Println(err)
+								break
+							}
+
+							if i == remains {
+								break
+							}
+							query.WriteString(", ")
+
+						}
+
+						query.WriteString(";")
+						_, err = redshift.Connection.Exec(query.String())
+						if err != nil {
+							log.Println(query.String())
+							log.Println(err)
 						}
 					}
 				}()
