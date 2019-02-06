@@ -419,6 +419,7 @@ func (worker *Worker) Writer(driver string) {
 							stringEvent, err := getStringEventValues(event)
 
 							if err != nil {
+								log.Println(event)
 								log.Println(err)
 								continue
 							}
@@ -426,6 +427,7 @@ func (worker *Worker) Writer(driver string) {
 							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
+								log.Println(stringEvent)
 								log.Println(err)
 								break
 							}
@@ -517,6 +519,7 @@ func (worker *Worker) Writer(driver string) {
 							stringEvent, err := getStringEventValues(event)
 
 							if err != nil {
+								log.Println(event)
 								log.Println(err)
 								continue
 							}
@@ -524,9 +527,11 @@ func (worker *Worker) Writer(driver string) {
 							_, err = query.WriteString(stringEvent)
 
 							if err != nil {
+								log.Println(stringEvent)
 								log.Println(err)
 								break
 							}
+
 							if i == remains {
 								break
 							}
