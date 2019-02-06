@@ -269,6 +269,8 @@ func (worker *Worker) Transformer() {
 			err := snowplowEvent.Transform(rawEvent, worker.GeoDB)
 			if err != nil {
 				worker.Stats.SnowplowFailRing.Add(snowplowEvent, err)
+
+				checkStringForNull("error", &snowplowEvent.EventID)
 				checkStringForNull("Transform", &snowplowEvent.ErrType)
 				checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &snowplowEvent.Error)
 				checkStringForNull(fmt.Sprintf("%#v", string(rawEvent)), &snowplowEvent.ErrorEvent)
@@ -463,6 +465,7 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								checkStringForNull("error", &event.EventID)
 								checkStringForNull("GetStringEventValues", &event.ErrType)
 								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
@@ -474,6 +477,7 @@ func (worker *Worker) Writer(driver string) {
 
 							if err != nil {
 								worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+								checkStringForNull("error", &event.EventID)
 								checkStringForNull("WriteString", &event.ErrType)
 								checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
 								checkStringForNull(fmt.Sprintf("%#v", event), &event.ErrorEvent)
@@ -495,6 +499,8 @@ func (worker *Worker) Writer(driver string) {
 						if err != nil {
 							event := &SnowplowEvent{}
 							worker.Stats.RedshiftSnowplowFailRing.Add(event, err)
+
+							checkStringForNull("error", &event.EventID)
 							checkStringForNull("ExecQuery", &event.ErrType)
 							checkStringForNull(strings.Replace(err.Error(), "'", "\\\"", -1), &event.Error)
 							checkStringForNull(fmt.Sprintf("%#v", query.String()), &event.ErrorEvent)
