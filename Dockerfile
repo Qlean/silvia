@@ -1,5 +1,12 @@
 FROM golang:1.11.0
 # as build
+ARG BUILD_SOURCE
+ARG REPO_NAME
+ARG REPO_OWNER
+
+LABEL org.opencontainers.image.vendor=${REPO_OWNER} \
+      org.opencontainers.image.title=${REPO_NAME} \
+      org.opencontainers.image.source=${BUILD_SOURCE}
 
 # Install system dependencies
 
