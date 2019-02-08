@@ -1,7 +1,6 @@
 clone:
   git:
     image: plugins/git
-    depth: 1
 
 pipeline:
   build:
