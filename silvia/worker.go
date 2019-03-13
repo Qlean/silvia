@@ -354,7 +354,7 @@ func (worker *Worker) Writer(driver string) {
 						var query bytes.Buffer
 						query.WriteString(adjustInsert)
 
-						remains := 5
+						remains := 50
 						i := 0
 						for event := range worker.RedshiftAdjustEventBus {
 							i++
