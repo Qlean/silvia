@@ -1,0 +1,12 @@
+target
+.lein-*
+.DS_Store
+.git
+.gitignore
+.projectile
+.nrepl-*
+dev
+test
+Dockerfile
+.drone*
+.vscode*
