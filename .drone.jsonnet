@@ -79,7 +79,7 @@ local build_and_push_pipeline(target='', tag='${DRONE_COMMIT}') = {
         volumes: default_mounts,
       },
       {
-        name: 'push built image for ' + target,
+        name: if target != '' then 'push built image for ' + target else 'push built image',
         image: default_docker_img,
         commands: [
           docker_login,
@@ -118,7 +118,7 @@ local release_pipeline = {
       ],
       environment: registry_credentials,
       volumes: default_mounts,
-      when: if env == 'production' then { branch: 'master' } else { branch: { exclude: 'master' } } ,
+      when: if env == 'production' then { branch: ['master'], } else { branch: { exclude: ['master'], }, } ,
     },
     for env in envs
   ],
@@ -134,9 +134,8 @@ local slack_notification(name = '',channel = 'drone-ci',secret='notify_slack_web
     webhook: {
       from_secret: secret,
     },
-    template: if template ==  '' then
-      '{{#success build.status}} *SUCCESS* {{else}} *FAIL* {{/success}} <${DRONE_BUILD_LINK}|${DRONE_REPO_NAME}#${DRONE_COMMIT:0:10}-${DRONE_BUILD_NUMBER}> {{#equal "${DRONE_BUILD_EVENT}" "pull_request"}} (PR: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_MESSAGE}>) {{/equal}} {{#equal "${DRONE_BUILD_EVENT}" "push"}} (Br: <${DRONE_REPO_LINK}/tree/${DRONE_COMMIT_BRANCH}|${DRONE_COMMIT_BRANCH}>) {{/equal}} {{#equal "${DRONE_BUILD_EVENT}" "tag"}} (Tag: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_MESSAGE}>) {{/equal}} by <https://github.com/${DRONE_COMMIT_AUTHOR}|${DRONE_COMMIT_AUTHOR}>\n'
-      else template,
+    template: if template != '' then template
+      else '{{#success build.status}} *SUCCESS* {{else}} *FAIL* {{/success}} <${DRONE_BUILD_LINK}|${DRONE_REPO_NAME}#${DRONE_COMMIT:0:10}-${DRONE_BUILD_NUMBER}> {{#equal "${DRONE_BUILD_EVENT}" "pull_request"}} (PR: <${DRONE_COMMIT_LINK}|${DRONE_REPO_LINK}/pulls/${DRONE_PULL_REQUEST}>) {{/equal}} {{#equal "${DRONE_BUILD_EVENT}" "push"}} (Br: <${DRONE_REPO_LINK}/tree/${DRONE_COMMIT_BRANCH}|${DRONE_COMMIT_BRANCH}>) {{/equal}} {{#equal "${DRONE_BUILD_EVENT}" "tag"}} (Tag: <${DRONE_TAG}|${DRONE_REPO_LINK}/tree/${DRONE_TAG}>) {{/equal}} by <https://github.com/${DRONE_COMMIT_AUTHOR}|${DRONE_COMMIT_AUTHOR}>\n'
   },
 };
 
