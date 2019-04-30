@@ -22,7 +22,7 @@ local docker_build_command(tag=docker_img(), target='') =
       { name: 'label', value: 'org.opencontainers.image.revision=${DRONE_COMMIT}' },
       { name: 'label', value: 'org.opencontainers.image.source=${DRONE_REPO_LINK}' },
       { name: 'label', value: 'org.opencontainers.image.title=${DRONE_REPO_NAME,,}' },
-      { name: 'label', value: 'org.opencontainers.image.vendor=${DRONE_REPO_OWNER,,}' },
+      { name: 'label', value: 'org.opencontainers.image.vendor=${DRONE_REPO_OWNER}' },
       { name: 'label', value: 'ru.qlean.drone.build.author=${DRONE_COMMIT_AUTHOR}' },
       { name: 'label', value: 'ru.qlean.drone.build.number=${DRONE_BUILD_NUMBER}' },
       { name: 'label', value: 'ru.qlean.drone.build.link=${DRONE_BUILD_LINK}' },
