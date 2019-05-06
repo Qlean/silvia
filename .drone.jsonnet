@@ -168,7 +168,7 @@ local deploy_pipeline(env) =
         name='deploy %(env)s start' % { env: env },
         secret='deploy_slack_webhook',
         channel='deploy',
-        template='<${DRONE_BUILD_LINK}|Deploy to production> STARTED\n Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>\n Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>\n Triggered_by: {{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}} {{#equal build.event "deployment"}}{{build.triggeredBy}} {{/equal}}\n',
+        template='<${DRONE_BUILD_LINK}|Deploy to production> STARTED\n Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>\n Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>\n Triggered_by: {{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}} {{#equal build.event "promote"}}{{build.triggeredBy}} {{/equal}}\n',
       ),
       {
         name: 'deploy',
@@ -192,7 +192,7 @@ local deploy_pipeline(env) =
         name='deploy %(env)s finish' % { env: env },
         secret='deploy_slack_webhook',
         channel='deploy',
-        template='{{#success build.status}}\n <${DRONE_BUILD_LINK}|Deploy to %(env)s> *SUCCEEDED*\n {{else}}\n <${DRONE_BUILD_LINK}|Deploy to %(env)s> *FAILED*\n {{/success}}\n Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>\n Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>\n Triggered_by: <@{{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}}{{#equal build.event "deployment"}}{{build.triggeredBy}}{{/equal}}>\n' % { env: env },
+        template='{{#success build.status}}\n <${DRONE_BUILD_LINK}|Deploy to %(env)s> *SUCCEEDED*\n {{else}}\n <${DRONE_BUILD_LINK}|Deploy to %(env)s> *FAILED*\n {{/success}}\n Project: <${DRONE_REPO_LINK}|${DRONE_REPO_NAME,,}>\n Commit: <${DRONE_COMMIT_LINK}|${DRONE_COMMIT_SHA}>\n Triggered_by: <@{{#equal build.event "push"}}${DRONE_COMMIT_AUTHOR}{{/equal}}{{#equal build.event "promote"}}{{build.triggeredBy}}{{/equal}}>\n' % { env: env },
       ),
     ],
     volumes: [
